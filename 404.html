@@ -5,88 +5,84 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Token · Pons Fork</title>
 <meta name="description" content="Live Pons Fork status for a token on Robinhood Chain — mode, supply burned, and whether fees are currently routed to Pons Fork." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
 <style>
   :root{
-    --ink:#0f1830;--mut:#5b6a86;--faint:#8a97b0;--line:rgba(20,30,60,.09);
-    --glass:rgba(255,255,255,.6);--glass2:rgba(255,255,255,.74);
-    --ember:#ef6a34;--ember-ink:#b8410f;--ember-bg:rgba(239,106,52,.12);
-    --mint:#12b886;--mint-ink:#0a7a55;--mint-bg:rgba(18,184,134,.13);
-    --red:#d23c3c;--red-bg:rgba(210,60,60,.1);
-    --brand:#4b62f5;--brand-ink:#2c40c9;
-    --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --bg:#f6f6f1;--ink:#121513;--mut:#5c635d;--faint:#9aa39c;
+    --line:rgba(18,21,19,.09);--card:#ffffff;
+    --burn:#ea580c;--burn-bg:rgba(234,88,12,.1);
+    --hold:#0e9f6e;--hold-bg:rgba(14,159,110,.1);
+    --red:#d23c3c;--red-bg:rgba(210,60,60,.08);
+    --sans:"Geist",system-ui,-apple-system,"Segoe UI",sans-serif;
+    --serif:"Instrument Serif",Georgia,serif;
     --mono:ui-monospace,"SF Mono","Cascadia Code",Menlo,Consolas,monospace;
   }
   *{box-sizing:border-box;margin:0}
-  html,body{background:#eef2f8}
-  body{font-family:var(--font);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh;position:relative;overflow-x:hidden}
-  .blob{position:absolute;border-radius:50%;filter:blur(70px);opacity:.5;z-index:0;pointer-events:none}
-  .b1{width:480px;height:480px;background:#8fe3c6;top:-150px;left:-120px}
-  .b2{width:420px;height:420px;background:#ffc7a8;top:80px;right:-140px}
-  .b3{width:480px;height:480px;background:#bcc6ff;bottom:-220px;left:35%}
-  .wrap{position:relative;z-index:1;max-width:820px;margin:0 auto;padding:0 20px 40px}
-  .glass{background:var(--glass);backdrop-filter:blur(22px) saturate(140%);-webkit-backdrop-filter:blur(22px) saturate(140%);
-    border:1px solid rgba(255,255,255,.75);border-radius:20px;box-shadow:0 10px 40px rgba(24,38,72,.10)}
+  html,body{background:var(--bg)}
+  body{font-family:var(--sans);color:var(--ink);line-height:1.55;-webkit-font-smoothing:antialiased;font-size:15px;min-height:100vh}
+  .wrap{max-width:820px;margin:0 auto;padding:0 24px 48px}
   .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
 
-  .nav{display:flex;align-items:center;gap:14px;margin-top:16px;padding:11px 16px}
-  .brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:16px;text-decoration:none;color:var(--ink)}
-  .logo{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,var(--mint),var(--brand));font-size:14px}
+  .nav{display:flex;align-items:center;gap:18px;padding:20px 0;border-bottom:1px solid var(--line)}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:500;font-size:15px;text-decoration:none;color:var(--ink);letter-spacing:-.01em}
+  .logo{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;color:var(--bg);background:var(--ink);font-size:12px}
   .sp{flex:1}
-  .nav a.link{color:var(--mut);text-decoration:none;font-size:14px;font-weight:500}
+  .nav a.link{color:var(--mut);text-decoration:none;font-size:13.5px}
   .nav a.link:hover{color:var(--ink)}
   .connect{position:relative}
-  .connect button{font:inherit;font-size:13.5px;font-weight:600;color:#fff;cursor:not-allowed;background:linear-gradient(135deg,var(--brand),#6f7ff8);border:0;padding:8px 14px;border-radius:10px}
-  .connect .soon{position:absolute;top:calc(100% + 8px);right:0;white-space:nowrap;font-size:12px;color:#fff;background:#12203a;padding:5px 10px;border-radius:8px;opacity:0;transition:.15s;pointer-events:none}
+  .connect button{font:inherit;font-size:13px;font-weight:500;color:var(--bg);cursor:not-allowed;background:var(--ink);border:0;padding:8px 16px;border-radius:999px}
+  .connect .soon{position:absolute;top:calc(100% + 8px);right:0;white-space:nowrap;font-size:12px;color:var(--bg);background:var(--ink);padding:5px 10px;border-radius:8px;opacity:0;transition:.15s;pointer-events:none;z-index:5}
   .connect:hover .soon{opacity:1}
 
-  .card{margin-top:18px;padding:26px 26px}
-  .tk{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-  .tk .ic{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;font-weight:700;font-size:18px;font-family:var(--mono);flex:none;background:var(--brand);color:#fff}
-  .tk h1{font-size:26px;font-weight:700;letter-spacing:-.02em;line-height:1.1}
-  .tk .sym{color:var(--faint);font-weight:500;font-size:15px}
-  .addr{display:inline-flex;align-items:center;gap:8px;margin-top:8px;font-family:var(--mono);font-size:13px;color:var(--mut);
-    background:var(--glass2);border:1px solid var(--line);padding:6px 11px;border-radius:9px}
+  .card{margin-top:26px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:30px}
+  .tk{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .tk .ic{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;font-weight:600;font-size:16px;font-family:var(--mono);flex:none;background:var(--ink);color:var(--bg)}
+  .tk h1{font-size:30px;font-weight:500;letter-spacing:-.025em;line-height:1.1}
+  .tk h1 .sym{font-family:var(--serif);font-style:italic;font-weight:400;color:var(--mut);font-size:24px}
+  .addr{display:inline-flex;align-items:center;gap:9px;margin-top:9px;font-family:var(--mono);font-size:12.5px;color:var(--mut);background:var(--bg);border:1px solid var(--line);padding:6px 12px;border-radius:999px}
   .addr .cp{cursor:pointer;color:var(--faint)} .addr .cp:hover{color:var(--ink)}
+  .addr a{color:var(--mut);text-decoration:none} .addr a:hover{color:var(--ink)}
 
-  .status{margin-top:22px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:16px 20px;border-radius:16px}
-  .status.on{background:var(--mint-bg);border:1px solid rgba(18,184,134,.3)}
-  .status.off{background:var(--red-bg);border:1px solid rgba(210,60,60,.3)}
-  .status .dot{width:12px;height:12px;border-radius:50%;flex:none}
-  .status.on .dot{background:var(--mint);box-shadow:0 0 0 4px rgba(18,184,134,.2)}
+  .status{margin-top:26px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:16px 20px;border-radius:14px;border:1px solid var(--line)}
+  .status.on{background:var(--hold-bg);border-color:rgba(14,159,110,.25)}
+  .status.off{background:var(--red-bg);border-color:rgba(210,60,60,.2)}
+  .status .dot{width:10px;height:10px;border-radius:50%;flex:none}
+  .status.on .dot{background:var(--hold);box-shadow:0 0 0 4px rgba(14,159,110,.15)}
   .status.off .dot{background:var(--red)}
-  .status .txt{font-weight:700;font-size:16px}
-  .status.on .txt{color:var(--mint-ink)} .status.off .txt{color:var(--red)}
-  .status .mode{margin-left:auto;font-size:12.5px;font-weight:600;padding:6px 12px;border-radius:999px}
-  .status .mode.a{color:var(--ember-ink);background:var(--ember-bg)}
-  .status .mode.c{color:var(--mint-ink);background:#d7f5ea}
-  .status .sub{flex-basis:100%;font-size:13px;color:var(--mut);font-weight:400}
+  .status .txt{font-weight:500;font-size:15px}
+  .status.on .txt{color:var(--hold)} .status.off .txt{color:var(--red)}
+  .mode{margin-left:auto;font-size:10.5px;font-weight:600;letter-spacing:.02em;padding:5px 11px;border-radius:999px}
+  .mode.a{color:var(--burn);background:var(--burn-bg)}
+  .mode.c{color:var(--hold);background:var(--hold-bg)}
+  .status .sub{flex-basis:100%;font-size:13px;color:var(--mut)}
 
-  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:16px}
-  .st{padding:16px 18px}
-  .st .l{font-size:12px;color:var(--faint);font-weight:500}
-  .st .v{font-size:22px;font-weight:700;margin-top:7px;font-family:var(--mono);letter-spacing:-.01em}
-  .st .v.a{color:var(--ember-ink)} .st .v.c{color:var(--mint-ink)}
-  .st .v small{font-size:13px;color:var(--faint);font-weight:600}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:18px}
+  .st{background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+  .st .l{font-size:11px;color:var(--faint);font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+  .st .v{font-size:22px;font-weight:500;margin-top:8px;font-family:var(--mono);letter-spacing:-.01em}
+  .st .v.a{color:var(--burn)} .st .v.c{color:var(--hold)}
+  .st .v small{font-size:13px;color:var(--faint)}
 
-  .prog{height:8px;border-radius:5px;background:rgba(20,30,60,.08);overflow:hidden;margin-top:16px}
-  .prog i{display:block;height:100%;border-radius:5px;background:linear-gradient(90deg,var(--ember),#ff9a6a);width:0;transition:width .6s}
+  .prog{height:6px;border-radius:4px;background:rgba(18,21,19,.07);overflow:hidden;margin-top:18px}
+  .prog i{display:block;height:100%;border-radius:4px;background:var(--burn);width:0;transition:width .6s}
 
-  .foot{margin-top:20px;display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:13.5px}
-  .foot a{color:var(--brand-ink);text-decoration:none;font-weight:500}
-  .foot a:hover{text-decoration:underline}
+  .foot{margin-top:22px;display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:13.5px}
+  .foot a{color:var(--ink);text-decoration:none;font-weight:500;border-bottom:1px solid var(--line)}
+  .foot a:hover{border-color:var(--ink)}
   .foot .sp{flex:1}
   .muted{color:var(--faint);font-size:12.5px}
-  .loading{padding:60px 0;text-align:center;color:var(--mut)}
-  .spin{width:26px;height:26px;border:3px solid rgba(75,98,245,.25);border-top-color:var(--brand);border-radius:50%;display:inline-block;animation:sp 1s linear infinite}
+  .loading{padding:64px 0;text-align:center;color:var(--mut)}
+  .spin{width:24px;height:24px;border:2px solid rgba(18,21,19,.15);border-top-color:var(--ink);border-radius:50%;display:inline-block;animation:sp 1s linear infinite}
   @keyframes sp{to{transform:rotate(360deg)}}
-  .err{padding:40px 26px;text-align:center;color:var(--mut)}
-  .err a{color:var(--brand-ink)}
+  .err{padding:44px 26px;text-align:center;color:var(--mut)}
+  .err a{color:var(--ink)}
 </style>
 </head>
 <body>
-<span class="blob b1"></span><span class="blob b2"></span><span class="blob b3"></span>
 <div class="wrap">
-  <nav class="nav glass">
+  <nav class="nav">
     <a class="brand" href="../"><span class="logo">♦</span> Pons Fork</a>
     <div class="sp"></div>
     <a class="link" href="https://pons-fork.gitbook.io/pons-fork-docs/">Docs ↗</a>
@@ -95,7 +91,7 @@
   </nav>
 
   <div id="app">
-    <div class="card glass"><div class="loading"><span class="spin"></span><div style="margin-top:14px">Reading Robinhood Chain…</div></div></div>
+    <div class="card"><div class="loading"><span class="spin"></span><div style="margin-top:14px">Reading Robinhood Chain…</div></div></div>
   </div>
 </div>
 
@@ -129,7 +125,7 @@ function readAddr(){
 async function main(){
   const raw=readAddr();
   if(!raw || !isAddress(raw)){
-    app.innerHTML=`<div class="card glass"><div class="err">Open a token by its address:<br><span class="mono">ponsfork.com/token/0x…</span><br><br><a href="../">← back to Pons Fork</a></div></div>`;
+    app.innerHTML=`<div class="card"><div class="err">Open a token by its address:<br><span class="mono">ponsfork.com/token/0x…</span><br><br><a href="../">← back to Pons Fork</a></div></div>`;
     return;
   }
   const token=getAddress(raw);
@@ -152,31 +148,30 @@ async function main(){
     const isAgentic = recip===getAddress(AGENTIC);
     const isCashback = recip===getAddress(CASHBACK);
     const enabled = isAgentic || isCashback;
-    const mode = isAgentic ? "agentic" : isCashback ? "cashback" : "";
     const deployer = info ? info.deployer : "";
 
     const statusHtml = enabled
-      ? `<div class="status on"><span class="dot"></span><span class="txt">Ponsfork enabled</span>
-           <span class="mode ${isAgentic?'a':'c'}">${isAgentic?'🔥 Agentic Mode':'💸 Cashback'}</span>
+      ? `<div class="status on"><span class="dot"></span><span class="txt">Pons Fork enabled</span>
+           <span class="mode ${isAgentic?'a':'c'}">${isAgentic?'Agentic Mode · Buyback & Burn':'Cashback · Holder rewards'}</span>
            <span class="sub">Fees are routed to Pons Fork right now — ${isAgentic?'bought back &amp; burned':'paid to holders in ETH'}, automatically.</span></div>`
       : `<div class="status off"><span class="dot"></span><span class="txt">Not connected</span>
-           <span class="sub">This token's fees are not routed to Pons Fork right now. Anyone can point them at Agentic Mode or Cashback — only the token's dev.</span></div>`;
+           <span class="sub">This token's fees are not routed to Pons Fork right now. Only the token's dev can point them at Agentic Mode or Cashback.</span></div>`;
 
     app.innerHTML=`
-      <div class="card glass">
+      <div class="card">
         <div class="tk">
           <div class="ic">${esc(String(symbol).slice(0,3).toUpperCase())}</div>
           <div><h1>${esc(name)} <span class="sym">$${esc(symbol)}</span></h1>
             <div class="addr"><span>${short(token)}</span><span class="cp" id="cp" title="copy">⧉</span>
-              <a href="${EXPLORER}/address/${token}" target="_blank" style="color:var(--brand-ink);text-decoration:none">explorer ↗</a></div>
+              <a href="${EXPLORER}/address/${token}" target="_blank">explorer ↗</a></div>
           </div>
         </div>
         ${statusHtml}
         <div class="stats">
-          <div class="st glass"><div class="l">🔥 Supply burned</div><div class="v a">${burnedPct.toFixed(2)}<small>%</small></div></div>
-          <div class="st glass"><div class="l">Tokens burned</div><div class="v">${fmt(burned)}</div></div>
-          <div class="st glass"><div class="l">Total supply</div><div class="v">${fmt(sup)}</div></div>
-          <div class="st glass"><div class="l">Deployer</div><div class="v" style="font-size:14px">${deployer?short(deployer):"—"}</div></div>
+          <div class="st"><div class="l">Supply burned</div><div class="v a">${burnedPct.toFixed(2)}<small>%</small></div></div>
+          <div class="st"><div class="l">Tokens burned</div><div class="v">${fmt(burned)}</div></div>
+          <div class="st"><div class="l">Total supply</div><div class="v">${fmt(sup)}</div></div>
+          <div class="st"><div class="l">Deployer</div><div class="v" style="font-size:14px">${deployer?short(deployer):"—"}</div></div>
         </div>
         <div class="prog"><i style="width:${Math.min(burnedPct,100)}%"></i></div>
         <div class="foot">
@@ -185,12 +180,12 @@ async function main(){
           <span class="muted">Live from Robinhood Chain${enabled?"":" · not connected"}</span>
         </div>
       </div>
-      <div class="foot" style="justify-content:center;margin-top:14px"><a href="../">← All Pons Fork tokens</a></div>`;
+      <div class="foot" style="justify-content:center;margin-top:16px"><a href="../">← All Pons Fork tokens</a></div>`;
 
     const cp=document.getElementById("cp");
     if(cp) cp.onclick=()=>{navigator.clipboard?.writeText(token);cp.textContent="✓";setTimeout(()=>cp.textContent="⧉",1200);};
   }catch(e){
-    app.innerHTML=`<div class="card glass"><div class="err">Couldn't load this token.<br><span class="muted">${esc(e.message||"")}</span><br><br><a href="../">← back to Pons Fork</a></div></div>`;
+    app.innerHTML=`<div class="card"><div class="err">Couldn't load this token.<br><span class="muted">${esc(e.message||"")}</span><br><br><a href="../">← back to Pons Fork</a></div></div>`;
   }
 }
 main();

@@ -5,174 +5,213 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Pons Fork — fees on autopilot</title>
 <meta name="description" content="Pons Fork: automated creator-fee buyback-burn (Agentic Mode) and holder rewards (Cashback) for pons.family tokens on Robinhood Chain." />
-<style>html,body{margin:0;padding:0;background:#eef2f8}.pf{min-height:100vh}</style>
-</head>
-<body><style>
-  .pf{
-    --ink:#0f1830;--mut:#5b6a86;--faint:#8a97b0;--line:rgba(20,30,60,.09);
-    --glass:rgba(255,255,255,.6);--glass2:rgba(255,255,255,.74);
-    --ember:#ef6a34;--ember-ink:#b8410f;--ember-bg:rgba(239,106,52,.12);
-    --mint:#12b886;--mint-ink:#0a7a55;--mint-bg:rgba(18,184,134,.13);
-    --brand:#4b62f5;--brand-ink:#2c40c9;
-    --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#f6f6f1;--ink:#121513;--mut:#5c635d;--faint:#9aa39c;
+    --line:rgba(18,21,19,.09);--card:#ffffff;
+    --burn:#ea580c;--burn-bg:rgba(234,88,12,.1);
+    --hold:#0e9f6e;--hold-bg:rgba(14,159,110,.1);
+    --red:#d23c3c;--red-bg:rgba(210,60,60,.08);
+    --sans:"Geist",system-ui,-apple-system,"Segoe UI",sans-serif;
+    --serif:"Instrument Serif",Georgia,serif;
     --mono:ui-monospace,"SF Mono","Cascadia Code",Menlo,Consolas,monospace;
   }
-  .pf *{box-sizing:border-box;margin:0}
-  .pf{position:relative;font-family:var(--font);color:var(--ink);line-height:1.5;background:#eef2f8;overflow:hidden;padding:0 0 2px;-webkit-font-smoothing:antialiased}
-  .pf .blob{position:absolute;border-radius:50%;filter:blur(70px);opacity:.55;z-index:0;pointer-events:none}
-  .pf .b1{width:520px;height:520px;background:#8fe3c6;top:-160px;left:-120px}
-  .pf .b2{width:460px;height:460px;background:#ffc7a8;top:120px;right:-140px}
-  .pf .b3{width:520px;height:520px;background:#bcc6ff;bottom:-220px;left:30%}
-  .pf .wrap{position:relative;z-index:1;max-width:1080px;margin:0 auto;padding:0 22px}
-  .pf .glass{background:var(--glass);backdrop-filter:blur(22px) saturate(140%);-webkit-backdrop-filter:blur(22px) saturate(140%);border:1px solid rgba(255,255,255,.75);border-radius:20px;box-shadow:0 10px 40px rgba(24,38,72,.10)}
-  .pf .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+  *{box-sizing:border-box;margin:0}
+  html,body{background:var(--bg)}
+  body{font-family:var(--sans);color:var(--ink);line-height:1.55;-webkit-font-smoothing:antialiased;font-size:15px}
+  .wrap{max-width:1060px;margin:0 auto;padding:0 24px}
+  .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+  a{color:inherit}
 
-  .pf .nav{display:flex;align-items:center;gap:16px;margin-top:16px;padding:11px 16px}
-  .pf .brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:17px;letter-spacing:-.01em}
-  .pf .logo{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,var(--mint),var(--brand));font-size:15px;box-shadow:0 4px 14px rgba(75,98,245,.35)}
-  .pf .nav a.link{color:var(--mut);text-decoration:none;font-size:14px;font-weight:500}
-  .pf .nav a.link:hover{color:var(--ink)}
-  .pf .sp{flex:1}
-  .pf .net{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--mint-ink);background:var(--mint-bg);border:1px solid rgba(18,184,134,.25);padding:6px 11px;border-radius:999px}
-  .pf .net .dot{width:7px;height:7px;border-radius:50%;background:var(--mint)}
-  .pf .connect{position:relative}
-  .pf .connect button{font:inherit;font-size:14px;font-weight:600;color:#fff;cursor:not-allowed;background:linear-gradient(135deg,var(--brand),#6f7ff8);border:0;padding:9px 16px;border-radius:11px;box-shadow:0 6px 18px rgba(75,98,245,.35)}
-  .pf .connect .soon{position:absolute;top:calc(100% + 8px);right:0;white-space:nowrap;font-size:12px;color:#fff;background:#12203a;padding:5px 10px;border-radius:8px;opacity:0;transform:translateY(-3px);transition:.15s;pointer-events:none}
-  .pf .connect:hover .soon{opacity:1;transform:translateY(0)}
-  @media(max-width:760px){.pf .nav a.link{display:none}}
+  /* ── nav ── */
+  .nav{display:flex;align-items:center;gap:22px;padding:20px 0;border-bottom:1px solid var(--line)}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:500;font-size:15px;text-decoration:none;letter-spacing:-.01em}
+  .logo{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;color:var(--bg);background:var(--ink);font-size:12px}
+  .sp{flex:1}
+  .nav a.link{color:var(--mut);text-decoration:none;font-size:13.5px;font-weight:400}
+  .nav a.link:hover{color:var(--ink)}
+  .net{display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--hold);background:var(--hold-bg);padding:6px 12px;border-radius:999px}
+  .net .dot{width:6px;height:6px;border-radius:50%;background:var(--hold)}
+  .connect{position:relative}
+  .connect button{font:inherit;font-size:13px;font-weight:500;color:var(--bg);cursor:not-allowed;background:var(--ink);border:0;padding:9px 18px;border-radius:999px}
+  .connect .soon{position:absolute;top:calc(100% + 8px);right:0;white-space:nowrap;font-size:12px;color:var(--bg);background:var(--ink);padding:5px 10px;border-radius:8px;opacity:0;transform:translateY(-3px);transition:.15s;pointer-events:none;z-index:5}
+  .connect:hover .soon{opacity:1;transform:translateY(0)}
+  @media(max-width:760px){.nav a.link,.net{display:none}}
 
-  .pf .hero{text-align:center;padding:60px 12px 36px}
-  .pf .hero .eyebrow{display:inline-flex;gap:8px;align-items:center;font-size:12.5px;font-weight:500;color:var(--brand-ink);background:rgba(75,98,245,.10);border:1px solid rgba(75,98,245,.2);padding:6px 13px;border-radius:999px;margin-bottom:20px}
-  .pf .hero h1{font-size:47px;line-height:1.06;font-weight:700;letter-spacing:-.03em;max-width:16ch;margin:0 auto;background:linear-gradient(180deg,#111d38,#33507e);-webkit-background-clip:text;background-clip:text;color:transparent}
-  .pf .hero p{font-size:18px;color:var(--mut);max-width:56ch;margin:20px auto 0;line-height:1.55}
-  .pf .cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:28px}
-  .pf .btn{font-size:15px;font-weight:600;text-decoration:none;padding:12px 22px;border-radius:13px;display:inline-flex;align-items:center;gap:8px}
-  .pf .btn.p{color:#fff;background:#151f3a;box-shadow:0 8px 22px rgba(21,31,58,.3)}
-  .pf .btn.p:hover{background:#0e1730}
-  .pf .btn.s{color:var(--ink);background:var(--glass2);border:1px solid rgba(255,255,255,.8)}
-  .pf .btn.s:hover{background:#fff}
+  /* ── hero ── */
+  .hero{padding:96px 0 72px}
+  .hero h1{font-weight:400;font-size:clamp(46px,9vw,92px);line-height:.98;letter-spacing:-.045em}
+  .hero h1 .it{font-family:var(--serif);font-style:italic;letter-spacing:-.02em}
+  .hero p{font-size:16.5px;color:var(--mut);max-width:52ch;margin:28px 0 0;line-height:1.6}
+  .hero p b{font-weight:500;color:var(--ink)}
+  .cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:34px}
+  .btn{font-size:14px;font-weight:500;text-decoration:none;padding:12px 24px;border-radius:999px;display:inline-flex;align-items:center;gap:8px;transition:.15s}
+  .btn.p{color:var(--bg);background:var(--ink)}
+  .btn.p:hover{opacity:.85}
+  .btn.s{color:var(--ink);border:1px solid rgba(18,21,19,.18);background:transparent}
+  .btn.s:hover{border-color:var(--ink)}
 
-  .pf .modes{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:6px 0 14px}
-  .pf .mc{padding:20px 22px}
-  .pf .mc .h{display:flex;align-items:center;gap:10px;font-weight:600;font-size:16px}
-  .pf .mc .h .ico{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-size:17px}
-  .pf .mc.a .h .ico{background:var(--ember-bg);color:var(--ember-ink)} .pf .mc.c .h .ico{background:var(--mint-bg);color:var(--mint-ink)}
-  .pf .mc .desc{font-size:13px;color:var(--mut);margin-top:4px}
-  .pf .wallet{display:flex;align-items:center;gap:8px;margin-top:14px;font-family:var(--mono);font-size:12.5px;color:var(--ink);background:var(--glass2);border:1px solid var(--line);padding:9px 12px;border-radius:11px;cursor:pointer}
-  .pf .wallet .lbl{color:var(--faint);font-family:var(--font)} .pf .wallet .cp{margin-left:auto;color:var(--faint)}
-  .pf .wallet:hover .cp{color:var(--ink)}
-  .pf .mc .cnt{margin-top:10px;font-size:13px;color:var(--mut)} .pf .mc .cnt b{font-family:var(--mono);color:var(--ink)}
-  @media(max-width:700px){.pf .modes{grid-template-columns:1fr}}
+  /* ── section scaffolding ── */
+  .sec{padding:64px 0;border-top:1px solid var(--line)}
+  .kicker{font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+  .sec h2{font-weight:500;font-size:clamp(30px,4.6vw,46px);line-height:1.05;letter-spacing:-.03em;margin-top:14px;max-width:560px}
+  .sec h2 .it{font-family:var(--serif);font-style:italic;font-weight:400}
+  .sec .lead{color:var(--mut);font-size:15px;margin-top:16px;max-width:52ch}
 
-  .pf .sec{margin-bottom:36px}
-  .pf .sec-h{display:flex;align-items:baseline;justify-content:space-between;margin:8px 4px 16px}
-  .pf .sec-h h2{font-size:22px;font-weight:600;letter-spacing:-.02em}
-  .pf .sec-h span{font-size:13px;color:var(--faint)}
-  .pf .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
-  .pf .tok{padding:18px 18px 16px;transition:transform .16s;display:block}
-  .pf .tok:hover{transform:translateY(-3px)}
-  .pf .tok .top{display:flex;align-items:center;gap:11px}
-  .pf .tok .ic{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;font-weight:700;font-size:13px;font-family:var(--mono);flex:none}
-  .pf .tok .ic.a{color:var(--ember-ink);background:var(--ember-bg)} .pf .tok .ic.c{color:var(--mint-ink);background:var(--mint-bg)}
-  .pf .tok .nm{font-weight:600;font-size:15px;display:flex;align-items:center;gap:7px}
-  .pf .tok .nm .t{color:var(--faint);font-weight:500;font-size:12.5px}
-  .pf .tok .badge{margin-left:auto;font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;padding:4px 9px;border-radius:7px}
-  .pf .tok .badge.a{color:var(--ember-ink);background:var(--ember-bg)} .pf .tok .badge.c{color:var(--mint-ink);background:var(--mint-bg)}
-  .pf .tok .big{font-size:26px;font-weight:700;letter-spacing:-.02em;margin:16px 0 2px;font-family:var(--mono)}
-  .pf .tok .big.a{color:var(--ember-ink)} .pf .tok .big.c{color:var(--mint-ink)}
-  .pf .tok .foot{display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:12px;border-top:1px solid var(--line);font-size:12px}
-  .pf .live{display:inline-flex;align-items:center;gap:6px;font-weight:600;padding:4px 9px;border-radius:999px;font-size:11.5px;color:var(--mint-ink);background:var(--mint-bg)}
-  .pf .live .d{width:7px;height:7px;border-radius:50%;background:var(--mint);box-shadow:0 0 0 3px rgba(18,184,134,.2)}
-  .pf .muted{color:var(--faint);font-size:13px}
+  /* ── mode cards ── */
+  .modes{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:40px}
+  .mc{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:26px 26px 22px}
+  .mc .n{font-size:12px;color:var(--faint);font-weight:500}
+  .mc h3{font-size:20px;font-weight:500;letter-spacing:-.01em;margin-top:10px;display:flex;align-items:center;gap:10px}
+  .badge{font-size:10.5px;font-weight:600;letter-spacing:.02em;padding:4px 10px;border-radius:999px}
+  .badge.a{color:var(--burn);background:var(--burn-bg)}
+  .badge.c{color:var(--hold);background:var(--hold-bg)}
+  .mc .desc{font-size:13.5px;color:var(--mut);margin-top:8px;line-height:1.6}
+  .wallet{display:flex;align-items:center;gap:8px;margin-top:18px;font-family:var(--mono);font-size:12px;color:var(--ink);background:var(--bg);border:1px solid var(--line);padding:10px 13px;border-radius:11px;cursor:pointer;word-break:break-all}
+  .wallet .cp{margin-left:auto;color:var(--faint);flex:none}
+  .wallet:hover .cp{color:var(--ink)}
+  .mc .cnt{margin-top:12px;font-size:13px;color:var(--mut)}
+  .mc .cnt b{font-family:var(--mono);font-weight:600;color:var(--ink)}
+  @media(max-width:700px){.modes{grid-template-columns:1fr}}
 
-  .pf .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-  .pf .step{padding:22px 20px}
-  .pf .step .n{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--brand);letter-spacing:.1em}
-  .pf .step h3{font-size:16px;font-weight:600;margin:10px 0 6px}
-  .pf .step p{font-size:13.5px;color:var(--mut);line-height:1.55}
-  @media(max-width:760px){.pf .steps{grid-template-columns:1fr}}
-  .pf .note{margin-top:16px;padding:18px 22px;display:flex;gap:14px;align-items:flex-start}
-  .pf .note .ico{width:34px;height:34px;border-radius:10px;flex:none;display:grid;place-items:center;background:var(--ember-bg);color:var(--ember-ink);font-size:17px}
-  .pf .note h3{font-size:14.5px;font-weight:600} .pf .note p{font-size:13px;color:var(--mut);margin-top:3px;line-height:1.55;max-width:80ch}
-  .pf .foot{margin:40px 0 22px;padding:22px 24px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
-  .pf .foot .brand{font-size:15px}
-  .pf .foot a.soc{color:var(--mut);text-decoration:none;font-size:13.5px;font-weight:500}
-  .pf .foot a.soc:hover{color:var(--ink)}
+  /* ── live tokens ── */
+  .live-line{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-top:14px}
+  .live-line .big{font-weight:500;font-size:clamp(26px,4vw,40px);letter-spacing:-.03em}
+  .live-line .dot-sep{color:var(--faint)}
+  .rows{margin-top:32px;border-top:1px solid var(--line)}
+  .row{display:flex;align-items:center;gap:14px;padding:16px 4px;border-bottom:1px solid var(--line);text-decoration:none;transition:background .12s}
+  .row:hover{background:rgba(18,21,19,.025)}
+  .row .ic{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-weight:600;font-size:12px;font-family:var(--mono);flex:none;background:var(--ink);color:var(--bg)}
+  .row .nm{font-weight:500;font-size:14.5px}
+  .row .tick{color:var(--faint);font-size:12.5px;font-family:var(--mono)}
+  .row .metric{margin-left:auto;text-align:right}
+  .row .metric .v{font-family:var(--mono);font-weight:500;font-size:14px}
+  .row .metric .l{font-size:11px;color:var(--faint)}
+  .row .arrow{color:var(--faint);flex:none}
+  .empty{padding:36px 4px;color:var(--mut);font-size:14px;border-bottom:1px solid var(--line)}
+
+  /* ── steps ── */
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:40px}
+  .step{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:24px 22px}
+  .step .n{font-size:12px;color:var(--faint);font-weight:500}
+  .step h3{font-size:17px;font-weight:500;margin:12px 0 8px;letter-spacing:-.01em}
+  .step p{font-size:13.5px;color:var(--mut);line-height:1.6}
+  @media(max-width:760px){.steps{grid-template-columns:1fr}}
+
+  /* ── verify note ── */
+  .note{margin-top:40px;border:1px solid var(--line);border-radius:18px;padding:22px 26px;background:var(--card)}
+  .note h3{font-size:14.5px;font-weight:500}
+  .note p{font-size:13.5px;color:var(--mut);margin-top:6px;line-height:1.6;max-width:86ch}
+
+  /* ── closing CTA ── */
+  .closing{padding:96px 0;border-top:1px solid var(--line);text-align:left}
+  .closing h2{font-weight:400;font-size:clamp(40px,7vw,72px);line-height:1;letter-spacing:-.04em}
+  .closing h2 .it{font-family:var(--serif);font-style:italic}
+  .closing .cta{margin-top:32px}
+  .fine{margin-top:30px;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+
+  /* ── footer ── */
+  .foot{display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding:26px 0 34px;border-top:1px solid var(--line)}
+  .foot a.soc{color:var(--mut);text-decoration:none;font-size:13px}
+  .foot a.soc:hover{color:var(--ink)}
+  .foot .muted{color:var(--faint);font-size:12.5px}
 </style>
+</head>
+<body>
+<div class="wrap">
 
-<div class="pf">
-  <span class="blob b1"></span><span class="blob b2"></span><span class="blob b3"></span>
-  <div class="wrap">
+  <nav class="nav">
+    <a class="brand" href="/"><span class="logo">♦</span> Pons Fork</a>
+    <div class="sp"></div>
+    <a class="link" href="#how">How it works</a>
+    <a class="link" href="https://pons-fork.gitbook.io/pons-fork-docs/">Docs ↗</a>
+    <a class="link" href="https://x.com/pons_fork">X ↗</a>
+    <span class="net"><span class="dot"></span> Robinhood Chain</span>
+    <span class="connect"><button>Connect wallet</button><span class="soon">Coming soon</span></span>
+  </nav>
 
-    <nav class="nav glass">
-      <div class="brand"><span class="logo">♦</span> Pons Fork</div>
-      <div class="sp"></div>
-      <a class="link" href="#how">How it works</a>
-      <a class="link" href="https://pons-fork.gitbook.io/pons-fork-docs/">Docs ↗</a>
-      <a class="link" href="https://x.com/pons_fork">X ↗</a>
-      <span class="net"><span class="dot"></span> Robinhood Chain</span>
-      <span class="connect"><button>Connect wallet</button><span class="soon">Coming soon</span></span>
-    </nav>
+  <header class="hero">
+    <h1>Every fee<br /><span class="it">works for you.</span></h1>
+    <p>Point your token's fee wallet at Pons Fork. Every creator fee it earns is claimed, then
+       <b>bought back and burned</b> — or <b>paid straight to your holders in ETH</b>.
+       Automatically, continuously, entirely on-chain on Robinhood Chain.</p>
+    <div class="cta">
+      <a class="btn p" href="#modes">Point your fees</a>
+      <a class="btn s" href="https://pons-fork.gitbook.io/pons-fork-docs/">Read the docs</a>
+    </div>
+  </header>
 
-    <header class="hero">
-      <span class="eyebrow">◆ Automated creator-fee engine · pons.family</span>
-      <h1>Your token's fees, on autopilot.</h1>
-      <p>Point your token's fee wallet at Pons Fork. It buys the token back and burns it, or pays your
-         holders in ETH — automatically, continuously, entirely on-chain.</p>
-      <div class="cta">
-        <a class="btn p" href="https://pons-fork.gitbook.io/pons-fork-docs/">Read the docs</a>
-        <a class="btn s" href="#tokens">See live tokens</a>
-      </div>
-    </header>
-
-    <section class="modes">
-      <div class="mc a glass">
-        <div class="h"><span class="ico">🔥</span> Agentic Mode</div>
-        <div class="desc">Buys the token back and burns it. Point your fee wallet here:</div>
+  <section class="sec" id="modes">
+    <div class="kicker">Two modes</div>
+    <h2>One address.<br /><span class="it">Automated forever.</span></h2>
+    <p class="lead">Set your token's fee wallet to one of these addresses — at launch or any time after.
+       That single action turns the fees on autopilot. Change your mind whenever: your fees, your call.</p>
+    <div class="modes">
+      <div class="mc">
+        <div class="n">01</div>
+        <h3>Agentic Mode <span class="badge a">Buyback &amp; Burn</span></h3>
+        <div class="desc">Fees buy your token back from the market and send it to the burn address. Supply shrinks with every cycle.</div>
         <div class="wallet" data-a="0x31A4F14D8ac9E89F2Ac6000b375B125468Cd1AF3"><span>0x31A4F14D8ac9E89F2Ac6000b375B125468Cd1AF3</span><span class="cp">⧉</span></div>
         <div class="cnt"><b id="ag-count">–</b> tokens live in Agentic Mode</div>
       </div>
-      <div class="mc c glass">
-        <div class="h"><span class="ico">💸</span> Cashback</div>
-        <div class="desc">Pays the fees to holders in ETH. Point your fee wallet here:</div>
+      <div class="mc">
+        <div class="n">02</div>
+        <h3>Cashback <span class="badge c">Holder rewards</span></h3>
+        <div class="desc">Fees are paid straight to everyone holding the token, proportional to their balance. Just hold and receive ETH.</div>
         <div class="wallet" data-a="0x6ab6bD6416997Ad39cBDA34C9b2Fc912D57A8eF4"><span>0x6ab6bD6416997Ad39cBDA34C9b2Fc912D57A8eF4</span><span class="cp">⧉</span></div>
         <div class="cnt"><b id="cb-count">–</b> tokens live in Cashback</div>
       </div>
-    </section>
-
-    <section class="sec" id="tokens">
-      <div class="sec-h"><h2>Connected tokens</h2><span id="tok-sub">live from Robinhood Chain</span></div>
-      <div class="grid" id="live-tokens"><div class="glass muted" style="grid-column:1/-1;padding:24px;text-align:center">Reading Robinhood Chain…</div></div>
-    </section>
-
-    <section class="sec" id="how">
-      <div class="sec-h"><h2>How it works</h2><span>one action from you</span></div>
-      <div class="steps">
-        <div class="step glass"><div class="n">01</div><h3>Point</h3><p>Set your token's fee wallet to the Agentic Mode or Cashback address above. Once — at launch or any time after.</p></div>
-        <div class="step glass"><div class="n">02</div><h3>Auto-detect</h3><p>Pons Fork spots the token on-chain and waits until the fees are worth claiming, so gas never eats them.</p></div>
-        <div class="step glass"><div class="n">03</div><h3>Act</h3><p>It claims, keeps 10%, and runs your mode — buy back &amp; burn, or pay holders in ETH. Every step a public transaction.</p></div>
-      </div>
-    </section>
-
-    <div class="note glass">
-      <div class="ico">⚠</div>
-      <div><h3>Verify, don't trust</h3><p>A token's dev can redirect its fees at any moment — to Pons Fork or back to themselves. A token is only truly connected while its status shows <b>Fees → Pons Fork</b>, checked live on-chain. Every claim, burn and payout is a public transaction.</p></div>
     </div>
+  </section>
 
-    <footer class="foot glass">
-      <div class="brand"><span class="logo">♦</span> Pons Fork</div>
-      <div class="sp"></div>
-      <a class="soc" href="https://x.com/pons_fork">X</a>
-      <a class="soc" href="https://t.me/ponsfork">Telegram</a>
-      <a class="soc" href="https://pons-fork.gitbook.io/pons-fork-docs/">Docs</a>
-      <a class="soc" href="https://github.com/ponsfork">GitHub</a>
-    </footer>
+  <section class="sec" id="tokens">
+    <div class="kicker">Live now</div>
+    <div class="live-line"><span class="big" id="tok-total">–</span><span class="dot-sep">·</span><span id="tok-sub" style="color:var(--mut)">reading Robinhood Chain…</span></div>
+    <div class="rows" id="live-tokens"><div class="empty">Reading Robinhood Chain…</div></div>
+  </section>
 
-  </div>
+  <section class="sec" id="how">
+    <div class="kicker">How it works</div>
+    <h2>One action <span class="it">from you.</span></h2>
+    <div class="steps">
+      <div class="step"><div class="n">01</div><h3>Point</h3><p>Set your token's fee wallet to the Agentic Mode or Cashback address above. Once — at launch or any time after.</p></div>
+      <div class="step"><div class="n">02</div><h3>Auto-detect</h3><p>Pons Fork spots the token on-chain and waits until the fees are worth claiming, so gas never eats them.</p></div>
+      <div class="step"><div class="n">03</div><h3>Act</h3><p>It claims, keeps 10%, and runs your mode — buy back &amp; burn, or pay holders in ETH. Every step a public transaction.</p></div>
+    </div>
+    <div class="note">
+      <h3>⚠ Verify, don't trust</h3>
+      <p>A token's dev can redirect its fees at any moment — to Pons Fork or back to themselves. A token is only truly
+         connected while its status shows <b>Fees → Pons Fork</b>, checked live on-chain. Every claim, burn and payout
+         is a public transaction on Robinhood Chain.</p>
+    </div>
+  </section>
+
+  <section class="closing">
+    <h2>Ready when<br /><span class="it">you are.</span></h2>
+    <div class="cta">
+      <a class="btn p" href="#modes">Point your fees</a>
+      <a class="btn s" href="https://pons-fork.gitbook.io/pons-fork-docs/">Read the docs</a>
+    </div>
+    <div class="fine">No sign-up · 10% service fee · Everything on-chain</div>
+  </section>
+
+  <footer class="foot">
+    <a class="brand" href="/"><span class="logo">♦</span> Pons Fork</a>
+    <div class="sp"></div>
+    <a class="soc" href="https://x.com/pons_fork">X</a>
+    <a class="soc" href="https://t.me/ponsfork">Telegram</a>
+    <a class="soc" href="https://pons-fork.gitbook.io/pons-fork-docs/">Docs</a>
+    <a class="soc" href="https://github.com/ponsfork">GitHub</a>
+    <span class="muted">Robinhood Chain · pons.family</span>
+  </footer>
+
 </div>
 
 <script>
-  document.querySelectorAll(".pf .wallet").forEach(function(w){
+  document.querySelectorAll(".wallet").forEach(function(w){
     w.addEventListener("click",function(){var a=w.getAttribute("data-a");navigator.clipboard&&navigator.clipboard.writeText(a);var c=w.querySelector(".cp");if(c){c.textContent="✓";setTimeout(function(){c.textContent="⧉";},1200);}});
   });
 </script>
@@ -190,16 +229,21 @@ async function meta(t){const[n,s,sup,d,b]=await Promise.all([pc.readContract({ad
   document.getElementById("cb-count").textContent=cb.length;
   const all=[...ag.map(t=>[t,"a"]),...cb.map(t=>[t,"c"])];
   const box=document.getElementById("live-tokens");
-  document.getElementById("tok-sub").textContent=all.length?all.length+" live · from Robinhood Chain":"none yet";
-  if(!all.length){box.innerHTML='<div class="glass muted" style="grid-column:1/-1;padding:26px;text-align:center">No tokens connected yet — point your fee wallet at Agentic Mode or Cashback to be the first.</div>';return;}
+  document.getElementById("tok-total").textContent=all.length+(all.length===1?" token":" tokens");
+  document.getElementById("tok-sub").textContent=all.length?"connected · live from Robinhood Chain":"none connected yet · live from Robinhood Chain";
+  if(!all.length){box.innerHTML='<div class="empty">No tokens connected yet — point your fee wallet at Agentic Mode or Cashback to be the first.</div>';return;}
   box.innerHTML="";
   for(const [t,mode] of all){
     let m; try{m=await meta(t);}catch(e){m={name:"Unknown",symbol:"?",pct:0};}
-    const el=document.createElement("a");el.href="/token/"+t;el.className="tok glass";el.style.textDecoration="none";el.style.color="inherit";
-    el.innerHTML='<div class="top"><div class="ic '+mode+'">'+esc(String(m.symbol).slice(0,3).toUpperCase())+'</div><div><div class="nm">'+esc(m.name)+' <span class="t">$'+esc(m.symbol)+'</span></div></div><span class="badge '+mode+'">'+(mode==="a"?"Agentic":"Cashback")+'</span></div><div class="big '+mode+'">'+m.pct.toFixed(2)+'<span style="font-size:14px;color:var(--faint)">% burned</span></div><div class="foot"><span class="live"><span class="d"></span> Fees → Pons Fork</span><span style="color:var(--brand-ink)">view ↗</span></div>';
+    const el=document.createElement("a");el.href="/token/"+t;el.className="row";
+    el.innerHTML='<div class="ic">'+esc(String(m.symbol).slice(0,3).toUpperCase())+'</div>'
+      +'<div><div class="nm">'+esc(m.name)+'</div><div class="tick">$'+esc(m.symbol)+'</div></div>'
+      +'<span class="badge '+(mode==="a"?"a":"c")+'">'+(mode==="a"?"Burn":"Holders")+'</span>'
+      +'<div class="metric"><div class="v">'+m.pct.toFixed(2)+'%</div><div class="l">supply burned</div></div>'
+      +'<span class="arrow">→</span>';
     box.appendChild(el);
   }
-})().catch(e=>{const box=document.getElementById("live-tokens");if(box)box.innerHTML='<div class="glass muted" style="grid-column:1/-1;padding:24px;text-align:center">Couldn\'t load live data. <a href="https://robinhoodchain.blockscout.com" style="color:var(--brand-ink)">explorer</a></div>';});
+})().catch(e=>{const box=document.getElementById("live-tokens");if(box)box.innerHTML='<div class="empty">Couldn\'t load live data — <a href="https://robinhoodchain.blockscout.com">explorer</a></div>';const s=document.getElementById("tok-sub");if(s)s.textContent="live data unavailable";});
 </script>
 
 </body>
