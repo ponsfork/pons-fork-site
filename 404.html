@@ -28,8 +28,9 @@
   .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
 
   .nav{display:flex;align-items:center;gap:18px;padding:20px 0;border-bottom:1px solid var(--line)}
-  .brand{display:flex;align-items:center;gap:9px;font-weight:500;font-size:15px;text-decoration:none;color:var(--ink);letter-spacing:-.01em}
-  .logo{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;color:var(--bg);background:var(--ink);font-size:12px}
+  .brand{display:inline-flex;align-items:center;text-decoration:none;line-height:0}
+  .brand-logo{height:38px;width:auto;display:block;mix-blend-mode:multiply;transition:opacity .15s}
+  .brand:hover .brand-logo{opacity:.7}
   .sp{flex:1}
   .nav a.link{color:var(--mut);text-decoration:none;font-size:13.5px}
   .nav a.link:hover{color:var(--ink)}
@@ -85,7 +86,7 @@
 <body>
 <div class="wrap">
   <nav class="nav">
-    <a class="brand" href="../"><span class="logo">♦</span> Pons Fork</a>
+    <a class="brand" href="/" aria-label="Pons Fork — home"><img class="brand-logo" src="/logo.jpg" alt="Pons Fork" width="400" height="400" /></a>
     <div class="sp"></div>
     <a class="link" href="https://pons-fork.gitbook.io/pons-fork-docs/">Docs ↗</a>
     <a class="link" href="https://x.com/pons_fork">X ↗</a>
