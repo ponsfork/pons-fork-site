@@ -42,6 +42,7 @@
   .card{margin-top:26px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:30px}
   .tk{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
   .tk .ic{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;font-weight:600;font-size:16px;font-family:var(--mono);flex:none;background:var(--ink);color:var(--bg)}
+  .tk img.ic{object-fit:cover;background:#fff}
   .tk h1{font-size:30px;font-weight:500;letter-spacing:-.025em;line-height:1.1}
   .tk h1 .sym{font-family:var(--serif);font-style:italic;font-weight:400;color:var(--mut);font-size:24px}
   .addr{display:inline-flex;align-items:center;gap:9px;margin-top:9px;font-family:var(--mono);font-size:12.5px;color:var(--mut);background:var(--bg);border:1px solid var(--line);padding:6px 12px;border-radius:999px}
@@ -99,7 +100,7 @@
 </div>
 
 <script type="module">
-import { createPublicClient, http, getAddress, isAddress, formatUnits, erc20Abi, parseAbi } from "https://esm.sh/viem@2.23.2";
+import { createPublicClient, http, getAddress, isAddress, formatUnits, erc20Abi, parseAbi, decodeFunctionData } from "https://esm.sh/viem@2.23.2";
 
 const RPC="https://rpc.mainnet.chain.robinhood.com";
 const EXPLORER="https://robinhoodchain.blockscout.com";
@@ -111,10 +112,23 @@ const DEAD="0x000000000000000000000000000000000000dEaD";
 
 const lockerAbi=parseAbi(["function feeRedirects(address) view returns (address)"]);
 const factoryAbi=parseAbi(["function getLaunchedToken(address token) view returns ((address token,address deployer,address pairedToken,address positionManager,uint256 positionId,uint256 dexId,uint256 launchConfigId,uint256 restrictionsEndBlock,uint256 supply,bool isToken0,uint24 poolFee,bool exists,uint256 initialBuyAmount) info)"]);
+const deployedEvent=parseAbi(["event TokenDeployed(address indexed token,address indexed deployer,address indexed dexFactory,address pairToken,uint256 dexId,uint256 launchConfigId)"])[0];
+const launchAbi=parseAbi(["function launchToken((string name,string symbol,string logo,string description,(string twitter,string telegram,string discord,string website,string farcaster) socials,address feeWallet) params,uint256 launchConfigId,uint256 dexId,bytes32 salt) payable returns (address)"]);
 const pc=createPublicClient({transport:http(RPC)});
 const app=document.getElementById("app");
 const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 const short=a=>a.slice(0,6)+"…"+a.slice(-4);
+const ipfsHttp=u=>!u?"":(u.startsWith("ipfs://")?"https://ipfs.io/ipfs/"+u.slice(7).replace(/^ipfs\//,""):u);
+// Token logo lives only in the launchToken() tx calldata (IPFS URI); fetch it via the indexed launch log.
+async function tokenLogo(token){
+  try{
+    const logs=await pc.getLogs({address:FACTORY,event:deployedEvent,args:{token},fromBlock:0n,toBlock:"latest"});
+    if(!logs.length)return "";
+    const tx=await pc.getTransaction({hash:logs[0].transactionHash});
+    const {args}=decodeFunctionData({abi:launchAbi,data:tx.input});
+    return ipfsHttp(args[0].logo);
+  }catch(e){return "";}
+}
 function fmt(n){ if(n>=1e9)return (n/1e9).toFixed(2)+"B"; if(n>=1e6)return (n/1e6).toFixed(2)+"M"; if(n>=1e3)return (n/1e3).toFixed(2)+"K"; return n<1?n.toFixed(3):Math.round(n).toString(); }
 
 function readAddr(){
@@ -187,6 +201,13 @@ async function main(){
 
     const cp=document.getElementById("cp");
     if(cp) cp.onclick=()=>{navigator.clipboard?.writeText(token);cp.textContent="✓";setTimeout(()=>cp.textContent="⧉",1200);};
+    // Swap the text avatar for the real pons logo once it resolves; keep text on failure.
+    tokenLogo(token).then(src=>{
+      if(!src)return; const cur=document.querySelector(".tk .ic"); if(!cur)return;
+      const img=document.createElement("img"); img.className="ic"; img.src=src; img.alt="";
+      img.onerror=()=>{const d=document.createElement("div");d.className="ic";d.textContent=String(symbol).slice(0,3).toUpperCase();img.replaceWith(d);};
+      cur.replaceWith(img);
+    });
   }catch(e){
     app.innerHTML=`<div class="card"><div class="err">Couldn't load this token.<br><span class="muted">${esc(e.message||"")}</span><br><br><a href="../">← back to Pons Fork</a></div></div>`;
   }

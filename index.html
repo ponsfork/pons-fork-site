@@ -96,6 +96,7 @@
   .row{display:flex;align-items:center;gap:14px;padding:16px 4px;border-bottom:1px solid var(--line);text-decoration:none;transition:background .12s}
   .row:hover{background:rgba(18,21,19,.025)}
   .row .ic{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-weight:600;font-size:12px;font-family:var(--mono);flex:none;background:var(--ink);color:var(--bg)}
+  .row img.ic{object-fit:cover;background:#fff}
   .row .nm{font-weight:500;font-size:14.5px}
   .row .tick{color:var(--faint);font-size:12.5px;font-family:var(--mono)}
   .row .metric{margin-left:auto;text-align:right}
@@ -232,11 +233,34 @@
   });
 </script>
 <script type="module">
-import {createPublicClient,http,getAddress,formatUnits,erc20Abi,parseAbi} from "https://esm.sh/viem@2.23.2";
-const RPC="https://rpc.mainnet.chain.robinhood.com",LOCKER="0x736D76699C26D0d966744cAe304C000d471f7F35",AGENTIC="0x31A4F14D8ac9E89F2Ac6000b375B125468Cd1AF3",CASHBACK="0x6ab6bD6416997Ad39cBDA34C9b2Fc912D57A8eF4",DEAD="0x000000000000000000000000000000000000dEaD";
+import {createPublicClient,http,getAddress,formatUnits,erc20Abi,parseAbi,decodeFunctionData} from "https://esm.sh/viem@2.23.2";
+const RPC="https://rpc.mainnet.chain.robinhood.com",LOCKER="0x736D76699C26D0d966744cAe304C000d471f7F35",FACTORY="0xA5aAb3F0c6EeadF30Ef1D3Eb997108E976351feB",AGENTIC="0x31A4F14D8ac9E89F2Ac6000b375B125468Cd1AF3",CASHBACK="0x6ab6bD6416997Ad39cBDA34C9b2Fc912D57A8eF4",DEAD="0x000000000000000000000000000000000000dEaD";
 const lockerAbi=parseAbi(["function feeRecipientTokenCount(address) view returns (uint256)","function feeRecipientTokens(address,uint256) view returns (address)"]);
+const deployedEvent=parseAbi(["event TokenDeployed(address indexed token,address indexed deployer,address indexed dexFactory,address pairToken,uint256 dexId,uint256 launchConfigId)"])[0];
+const launchAbi=parseAbi(["function launchToken((string name,string symbol,string logo,string description,(string twitter,string telegram,string discord,string website,string farcaster) socials,address feeWallet) params,uint256 launchConfigId,uint256 dexId,bytes32 salt) payable returns (address)"]);
 const pc=createPublicClient({transport:http(RPC)});
 const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const ipfsHttp=u=>!u?"":(u.startsWith("ipfs://")?"https://ipfs.io/ipfs/"+u.slice(7).replace(/^ipfs\//,""):u);
+// Token logo is only in the launchToken() tx input (IPFS URI), not in any view fn.
+// Find the launch tx via the indexed TokenDeployed log, then decode its calldata.
+async function tokenLogo(token){
+  try{
+    const logs=await pc.getLogs({address:FACTORY,event:deployedEvent,args:{token},fromBlock:0n,toBlock:"latest"});
+    if(!logs.length)return "";
+    const tx=await pc.getTransaction({hash:logs[0].transactionHash});
+    const {args}=decodeFunctionData({abi:launchAbi,data:tx.input});
+    return ipfsHttp(args[0].logo);
+  }catch(e){return "";}
+}
+// Swap a text-avatar .ic element for the real logo image once it resolves; keep text on failure.
+function applyLogo(scope,token,fallbackText){
+  tokenLogo(token).then(src=>{
+    if(!src)return; const cur=scope.querySelector(".ic"); if(!cur)return;
+    const img=document.createElement("img"); img.className="ic"; img.src=src; img.alt="";
+    img.onerror=()=>{const d=document.createElement("div");d.className="ic";d.textContent=fallbackText;img.replaceWith(d);};
+    cur.replaceWith(img);
+  });
+}
 async function listTokens(w){const c=await pc.readContract({address:LOCKER,abi:lockerAbi,functionName:"feeRecipientTokenCount",args:[w]});const n=Number(c);if(!n)return[];const out=[];for(let i=0;i<n;i++){try{const t=await pc.readContract({address:LOCKER,abi:lockerAbi,functionName:"feeRecipientTokens",args:[w,BigInt(i)]});if(t)out.push(getAddress(t));}catch(e){}}return out;}
 async function meta(t){const[n,s,sup,d,b]=await Promise.all([pc.readContract({address:t,abi:erc20Abi,functionName:"name"}).catch(()=>"Unknown"),pc.readContract({address:t,abi:erc20Abi,functionName:"symbol"}).catch(()=>"?"),pc.readContract({address:t,abi:erc20Abi,functionName:"totalSupply"}).catch(()=>0n),pc.readContract({address:t,abi:erc20Abi,functionName:"decimals"}).catch(()=>18),pc.readContract({address:t,abi:erc20Abi,functionName:"balanceOf",args:[DEAD]}).catch(()=>0n)]);const dec=Number(d),ts=Number(formatUnits(sup,dec)),bn=Number(formatUnits(b,dec));return{name:n,symbol:s,pct:ts>0?bn/ts*100:0};}
 (async()=>{
@@ -252,12 +276,14 @@ async function meta(t){const[n,s,sup,d,b]=await Promise.all([pc.readContract({ad
   for(const [t,mode] of all){
     let m; try{m=await meta(t);}catch(e){m={name:"Unknown",symbol:"?",pct:0};}
     const el=document.createElement("a");el.href="/token/"+t;el.className="row";
-    el.innerHTML='<div class="ic">'+esc(String(m.symbol).slice(0,3).toUpperCase())+'</div>'
+    const sym3=esc(String(m.symbol).slice(0,3).toUpperCase());
+    el.innerHTML='<div class="ic">'+sym3+'</div>'
       +'<div><div class="nm">'+esc(m.name)+'</div><div class="tick">$'+esc(m.symbol)+'</div></div>'
       +'<span class="badge '+(mode==="a"?"a":"c")+'">'+(mode==="a"?"Burn":"Holders")+'</span>'
       +'<div class="metric"><div class="v">'+m.pct.toFixed(2)+'%</div><div class="l">supply burned</div></div>'
       +'<span class="arrow">→</span>';
     box.appendChild(el);
+    applyLogo(el,t,String(m.symbol).slice(0,3).toUpperCase());
   }
 })().catch(e=>{const box=document.getElementById("live-tokens");if(box)box.innerHTML='<div class="empty">Couldn\'t load live data — <a href="https://robinhoodchain.blockscout.com">explorer</a></div>';const s=document.getElementById("tok-sub");if(s)s.textContent="live data unavailable";});
 </script>
