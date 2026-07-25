@@ -170,7 +170,7 @@ async function main(){
     // cumulative ETH distributed to holders (cashback) — from the published stats
     let distEth = "0";
     try {
-      const st = await (await fetch("/stats.json?t=" + Date.now())).json();
+      const st = await (await fetch("https://raw.githubusercontent.com/ponsfork/pons-fork-stats/main/stats.json")).json();
       const w = (st.tokens?.[token.toLowerCase()] || {}).distributedWei || "0";
       const v = Number(formatUnits(BigInt(w), 18));
       distEth = v >= 1 ? v.toFixed(3) : v.toFixed(4);

@@ -262,7 +262,7 @@ function applyLogo(scope,token,fallbackText){
 async function listTokens(w){const c=await pc.readContract({address:LOCKER,abi:lockerAbi,functionName:"feeRecipientTokenCount",args:[w]});const n=Number(c);if(!n)return[];const out=[];for(let i=0;i<n;i++){try{const t=await pc.readContract({address:LOCKER,abi:lockerAbi,functionName:"feeRecipientTokens",args:[w,BigInt(i)]});if(t)out.push(getAddress(t));}catch(e){}}return out;}
 async function meta(t){const[n,s,sup,d,b]=await Promise.all([pc.readContract({address:t,abi:erc20Abi,functionName:"name"}).catch(()=>"Unknown"),pc.readContract({address:t,abi:erc20Abi,functionName:"symbol"}).catch(()=>"?"),pc.readContract({address:t,abi:erc20Abi,functionName:"totalSupply"}).catch(()=>0n),pc.readContract({address:t,abi:erc20Abi,functionName:"decimals"}).catch(()=>18),pc.readContract({address:t,abi:erc20Abi,functionName:"balanceOf",args:[DEAD]}).catch(()=>0n)]);const dec=Number(d),ts=Number(formatUnits(sup,dec)),bn=Number(formatUnits(b,dec));return{name:n,symbol:s,pct:ts>0?bn/ts*100:0};}
 let STATS={};
-try{STATS=((await (await fetch("/stats.json?t="+Date.now())).json()).tokens)||{};}catch(e){}
+try{STATS=((await (await fetch("https://raw.githubusercontent.com/ponsfork/pons-fork-stats/main/stats.json")).json()).tokens)||{};}catch(e){}
 const ethDist=t=>{const w=(STATS[t.toLowerCase()]||{}).distributedWei||"0";const v=Number(formatUnits(BigInt(w),18));return v>=1?v.toFixed(3):v.toFixed(4);};
 (async()=>{
   const [ag,cb]=await Promise.all([listTokens(AGENTIC),listTokens(CASHBACK)]);
