@@ -277,7 +277,7 @@ async function meta(t){const[n,s,sup,d,b]=await Promise.all([pc.readContract({ad
     const sym3=esc(String(m.symbol).slice(0,3).toUpperCase());
     el.innerHTML='<div class="ic">'+sym3+'</div>'
       +'<div><div class="nm">'+esc(m.name)+'</div><div class="tick">$'+esc(m.symbol)+'</div></div>'
-      +'<span class="badge '+(mode==="a"?"a":"c")+'">'+(mode==="a"?"Burn":"Holders")+'</span>'
+      +'<span class="badge '+(mode==="a"?"a":"c")+'">'+(mode==="a"?"Agentic Mode":"Cashback")+'</span>'
       +'<div class="metric"><div class="v">'+m.pct.toFixed(2)+'%</div><div class="l">supply burned</div></div>'
       +'<span class="arrow">→</span>';
     box.appendChild(el);
