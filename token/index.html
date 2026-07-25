@@ -167,6 +167,15 @@ async function main(){
     const enabled = isAgentic || isCashback;
     const deployer = info ? info.deployer : "";
 
+    // cumulative ETH distributed to holders (cashback) — from the published stats
+    let distEth = "0";
+    try {
+      const st = await (await fetch("/stats.json?t=" + Date.now())).json();
+      const w = (st.tokens?.[token.toLowerCase()] || {}).distributedWei || "0";
+      const v = Number(formatUnits(BigInt(w), 18));
+      distEth = v >= 1 ? v.toFixed(3) : v.toFixed(4);
+    } catch (e) {}
+
     const statusHtml = enabled
       ? `<div class="status on"><span class="dot"></span><span class="txt">Pons Fork enabled</span>
            <span class="mode ${isAgentic?'a':'c'}">${isAgentic?'Agentic Mode · Buyback & Burn':'Cashback · Holder rewards'}</span>
@@ -185,7 +194,9 @@ async function main(){
         </div>
         ${statusHtml}
         <div class="stats">
-          <div class="st"><div class="l">Supply burned</div><div class="v a">${burnedPct.toFixed(2)}<small>%</small></div></div>
+          ${isCashback
+            ? `<div class="st"><div class="l">ETH distributed</div><div class="v c">${distEth}<small> ETH</small></div></div>`
+            : `<div class="st"><div class="l">Supply burned</div><div class="v a">${burnedPct.toFixed(2)}<small>%</small></div></div>`}
           <div class="st"><div class="l">Tokens burned</div><div class="v">${fmt(burned)}</div></div>
           <div class="st"><div class="l">Total supply</div><div class="v">${fmt(sup)}</div></div>
           <div class="st"><div class="l">Deployer</div><div class="v" style="font-size:14px">${deployer?short(deployer):"—"}</div></div>
