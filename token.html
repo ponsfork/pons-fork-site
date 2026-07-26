@@ -62,6 +62,18 @@
   .mode.a{color:var(--burn);background:var(--burn-bg)}
   .mode.c{color:var(--hold);background:var(--hold-bg)}
   .mode.h{color:var(--heart);background:var(--heart-bg)}
+  .mode.off{color:var(--faint);background:rgba(18,21,19,.06)}
+
+  .prow{display:flex;align-items:center;gap:12px;padding:14px 4px;border-bottom:1px solid var(--line);text-decoration:none;color:inherit;transition:background .12s}
+  .prow:hover{background:rgba(18,21,19,.025)}
+  .prow .ic{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-weight:600;font-size:12px;font-family:var(--mono);flex:none;background:var(--ink);color:var(--bg)}
+  .prow img.ic{object-fit:cover;background:#fff}
+  .prow .nm{font-weight:500;font-size:14.5px}
+  .prow .tick{color:var(--faint);font-size:12.5px;font-family:var(--mono)}
+  .prow .mode{margin-left:10px}
+  .prow .metric{margin-left:auto;text-align:right}
+  .prow .metric .v{font-family:var(--mono);font-weight:500;font-size:14px}
+  .prow .metric .l{font-size:11px;color:var(--faint)}
   .status .sub{flex-basis:100%;font-size:13px;color:var(--mut)}
 
   .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:18px}
@@ -135,16 +147,21 @@ async function tokenLogo(token){
 }
 function fmt(n){ if(n>=1e9)return (n/1e9).toFixed(2)+"B"; if(n>=1e6)return (n/1e6).toFixed(2)+"M"; if(n>=1e3)return (n/1e3).toFixed(2)+"K"; return n<1?n.toFixed(3):Math.round(n).toString(); }
 
-function readAddr(){
-  const p=location.pathname; const i=p.indexOf("/token/");
+function readRoute(){
+  const p=location.pathname;
+  const pm=p.match(/\/profile\/(0x[0-9a-fA-F]{40})/);
+  if(pm) return {mode:"profile", addr:pm[1]};
+  const i=p.indexOf("/token/");
   let a = i>=0 ? p.slice(i+7) : "";
   a=a.replace(/\/+$/,"").split("?")[0].split("#")[0];
   if(!a){ const u=new URLSearchParams(location.search); a=u.get("a")||u.get("address")||""; }
-  return a;
+  return {mode:"token", addr:a};
 }
 
 async function main(){
-  const raw=readAddr();
+  const route=readRoute();
+  if(route.mode==="profile"){ await renderProfile(route.addr); return; }
+  const raw=route.addr;
   if(!raw || !isAddress(raw)){
     app.innerHTML=`<div class="card"><div class="err">Open a token by its address:<br><span class="mono">ponsfork.com/token/0x…</span><br><br><a href="../">← back to Pons Fork</a></div></div>`;
     return;
@@ -207,7 +224,7 @@ async function main(){
             : `<div class="st"><div class="l">Supply burned</div><div class="v a">${burnedPct.toFixed(2)}<small>%</small></div></div>`}
           <div class="st"><div class="l">Tokens burned</div><div class="v">${fmt(burned)}</div></div>
           <div class="st"><div class="l">Total supply</div><div class="v">${fmt(sup)}</div></div>
-          <div class="st"><div class="l">Deployer</div><div class="v" style="font-size:14px">${deployer?short(deployer):"—"}</div></div>
+          <div class="st"><div class="l">Deployer</div><div class="v" style="font-size:14px">${deployer?`<a href="/profile/${deployer}" style="color:inherit;text-decoration:none;border-bottom:1px solid var(--line)" title="view deployer profile">${short(deployer)}</a>`:"—"}</div></div>
         </div>
         <div class="prog"><i style="width:${Math.min(burnedPct,100)}%"></i></div>
         <div class="foot">
@@ -228,6 +245,67 @@ async function main(){
     });
   }catch(e){
     app.innerHTML=`<div class="card"><div class="err">Couldn't load this token.<br><span class="muted">${esc(e.message||"")}</span><br><br><a href="../">← back to Pons Fork</a></div></div>`;
+  }
+}
+// ── deployer profile: /profile/0x… — every pons deploy of a wallet, live ──
+async function renderProfile(addrRaw){
+  const who=getAddress(addrRaw);
+  document.title="Profile "+short(who)+" · Pons Fork";
+  try{
+    const logs=await pc.getLogs({address:FACTORY,event:deployedEvent,args:{deployer:who},fromBlock:0n,toBlock:"latest"});
+    const tokens=[...new Set(logs.map(l=>getAddress(l.args.token)))];
+    let stats={};
+    try{stats=((await (await fetch("https://raw.githubusercontent.com/ponsfork/pons-fork-stats/main/stats.json")).json()).tokens)||{};}catch(e){}
+    const fEth=w=>{const v=Number(formatUnits(BigInt(w||"0"),18));return v>=1?v.toFixed(3):v.toFixed(4);};
+    let rowsHtml="";
+    const metas=[];
+    for(const t of tokens){
+      const [name,symbol,supply,decimals,deadBal,redir]=await Promise.all([
+        pc.readContract({address:t,abi:erc20Abi,functionName:"name"}).catch(()=>"Unknown"),
+        pc.readContract({address:t,abi:erc20Abi,functionName:"symbol"}).catch(()=>"?"),
+        pc.readContract({address:t,abi:erc20Abi,functionName:"totalSupply"}).catch(()=>0n),
+        pc.readContract({address:t,abi:erc20Abi,functionName:"decimals"}).catch(()=>18),
+        pc.readContract({address:t,abi:erc20Abi,functionName:"balanceOf",args:[DEAD]}).catch(()=>0n),
+        pc.readContract({address:LOCKER,abi:lockerAbi,functionName:"feeRedirects",args:[t]}).catch(()=>"0x0000000000000000000000000000000000000000"),
+      ]);
+      const r=getAddress(redir);
+      const dec=Number(decimals),ts=Number(formatUnits(supply,dec)),bn=Number(formatUnits(deadBal,dec));
+      const pct=ts>0?bn/ts*100:0;
+      const rec=stats[t.toLowerCase()]||{};
+      let badge,metric;
+      if(r===getAddress(AGENTIC)){badge='<span class="mode a">Agentic Mode</span>';metric=`<div class="metric"><div class="v">${pct.toFixed(2)}%</div><div class="l">supply burned</div></div>`;}
+      else if(r===getAddress(CASHBACK)){badge='<span class="mode c">Cashback</span>';metric=`<div class="metric"><div class="v">${fEth(rec.distributedWei)}</div><div class="l">ETH distributed</div></div>`;}
+      else if(r===getAddress(CHARITY)){badge='<span class="mode h">Charity</span>';metric=`<div class="metric"><div class="v">${fEth(rec.charityDonatedWei)}</div><div class="l">ETH donated</div></div>`;}
+      else{badge='<span class="mode off">not on Pons Fork</span>';metric='<div class="metric"><div class="v">—</div><div class="l"></div></div>';}
+      metas.push({t,sym:String(symbol)});
+      rowsHtml+=`<a class="prow" href="/token/${t}" data-t="${t}"><div class="ic">${esc(String(symbol).slice(0,3).toUpperCase())}</div><div><div class="nm">${esc(name)}</div><div class="tick">$${esc(symbol)}</div></div>${badge}${metric}</a>`;
+    }
+    app.innerHTML=`
+      <div class="card">
+        <div class="tk">
+          <div class="ic">DEV</div>
+          <div><h1>Deployer <span class="sym">${short(who)}</span></h1>
+            <div class="addr"><span>${short(who)}</span><span class="cp" id="cp" title="copy">⧉</span>
+              <a href="${EXPLORER}/address/${who}" target="_blank">explorer ↗</a></div>
+          </div>
+        </div>
+        <div style="margin-top:18px;border-top:1px solid var(--line)">
+          ${rowsHtml||'<div class="err">No pons deploys found for this wallet.</div>'}
+        </div>
+        <div class="foot"><a href="/">← Pons Fork home</a><span class="sp"></span><span class="muted">${tokens.length} deploy${tokens.length===1?"":"s"} · live from Robinhood Chain</span></div>
+      </div>`;
+    const cp=document.getElementById("cp");
+    if(cp)cp.onclick=()=>{navigator.clipboard?.writeText(who);cp.textContent="✓";setTimeout(()=>cp.textContent="⧉",1200);};
+    for(const {t,sym} of metas){
+      tokenLogo(t).then(src=>{
+        if(!src)return;const el=document.querySelector(`.prow[data-t="${t}"] .ic`);if(!el)return;
+        const img=document.createElement("img");img.className="ic";img.src=src;img.alt="";
+        img.onerror=()=>{const d=document.createElement("div");d.className="ic";d.textContent=sym.slice(0,3).toUpperCase();img.replaceWith(d);};
+        el.replaceWith(img);
+      });
+    }
+  }catch(e){
+    app.innerHTML=`<div class="card"><div class="err">Couldn't load this profile.<br><span class="muted">${esc(e.message||"")}</span><br><br><a href="/">← back</a></div></div>`;
   }
 }
 main();
