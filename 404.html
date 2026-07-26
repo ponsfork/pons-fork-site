@@ -74,6 +74,23 @@
   .prow .metric{margin-left:auto;text-align:right}
   .prow .metric .v{font-family:var(--mono);font-weight:500;font-size:14px}
   .prow .metric .l{font-size:11px;color:var(--faint)}
+
+  /* charity allocation panel on token pages */
+  .btn{font-size:13px;font-weight:500;padding:9px 18px;border-radius:999px;border:0;cursor:pointer;font-family:var(--sans);transition:.15s}
+  .btn.h{color:#fff;background:var(--heart)} .btn.h:hover{opacity:.88}
+  .btn.s{color:var(--ink);border:1px solid rgba(18,21,19,.18);background:transparent} .btn.s:hover{border-color:var(--ink)}
+  .btn.mini{padding:7px 13px;font-size:12px}
+  .btn[disabled]{opacity:.5;cursor:not-allowed}
+  .orgline{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;padding:9px 2px;border-bottom:1px solid var(--line)}
+  .alloc-rows{margin-top:10px;display:flex;flex-direction:column;gap:8px}
+  .alloc-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .alloc-row select{font:inherit;font-size:13px;padding:8px 11px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+  .alloc-row input[type=number]{font:inherit;font-size:13px;width:70px;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+  .alloc-row .rm{background:none;border:0;color:var(--faint);cursor:pointer;font-size:16px;padding:4px}
+  .alloc-row .rm:hover{color:var(--red)}
+  .alloc-foot{display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap}
+  .total-badge{font-family:var(--mono);font-size:12px;font-weight:600;padding:6px 11px;border-radius:999px;background:var(--red-bg);color:var(--red)}
+  .total-badge.ok{background:var(--hold-bg);color:var(--hold)}
   .status .sub{flex-basis:100%;font-size:13px;color:var(--mut)}
 
   .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:18px}
@@ -126,7 +143,7 @@ const CASHBACK="0x6ab6bD6416997Ad39cBDA34C9b2Fc912D57A8eF4";
 const CHARITY="0x416C762f134B48Ef303bB0b8cAF7D1DB86F719d2";
 const DEAD="0x000000000000000000000000000000000000dEaD";
 
-const lockerAbi=parseAbi(["function feeRedirects(address) view returns (address)"]);
+const lockerAbi=parseAbi(["function feeRedirects(address) view returns (address)","function collectFees(address) returns (uint256,uint256)"]);
 const factoryAbi=parseAbi(["function getLaunchedToken(address token) view returns ((address token,address deployer,address pairedToken,address positionManager,uint256 positionId,uint256 dexId,uint256 launchConfigId,uint256 restrictionsEndBlock,uint256 supply,bool isToken0,uint24 poolFee,bool exists,uint256 initialBuyAmount) info)"]);
 const deployedEvent=parseAbi(["event TokenDeployed(address indexed token,address indexed deployer,address indexed dexFactory,address pairToken,uint256 dexId,uint256 launchConfigId)"])[0];
 const launchAbi=parseAbi(["function launchToken((string name,string symbol,string logo,string description,(string twitter,string telegram,string discord,string website,string farcaster) socials,address feeWallet) params,uint256 launchConfigId,uint256 dexId,bytes32 salt) payable returns (address)"]);
@@ -243,10 +260,127 @@ async function main(){
       img.onerror=()=>{const d=document.createElement("div");d.className="ic";d.textContent=String(symbol).slice(0,3).toUpperCase();img.replaceWith(d);};
       cur.replaceWith(img);
     });
+    // Charity tokens get the full allocation panel right on their page.
+    if(isCharity){ renderCharityPanel(token, deployer, info).catch(()=>{}); }
   }catch(e){
     app.innerHTML=`<div class="card"><div class="err">Couldn't load this token.<br><span class="muted">${esc(e.message||"")}</span><br><br><a href="../">← back to Pons Fork</a></div></div>`;
   }
 }
+// ── charity allocation panel (shown on charity-mode token pages) ──────────
+const CH_ORGS=[
+  {id:"stjude",  name:"St. Jude Children's Research Hospital", address:"0x92EE2370b56DC32794A6CD72585dC01d4288D314"},
+  {id:"givewell",name:"GiveWell",                              address:"0x4647c3b4c5ba4efa6d8197331de00c26ce36e8e6"},
+  {id:"eff",     name:"Electronic Frontier Foundation",        address:"0x1ca9EB2a5C213d417269134b80111F57e1644105"},
+  {id:"fpf",     name:"Freedom of the Press Foundation",       address:"0xC423F8aEDf1753Bc0ab58e455B0b5421CafE949e"},
+];
+let chAccount=null;
+
+// current split = latest valid on-chain memo (PONS|token|id:pct,...) from the deployer
+async function readAllocation(token,deployer){
+  try{
+    const r=await (await fetch(`${EXPLORER}/api?module=account&action=txlist&address=${CHARITY}&sort=asc`)).json();
+    let cur=null;
+    for(const t of (r.result||[])){
+      if(!t.to||t.to.toLowerCase()!==CHARITY.toLowerCase())continue;
+      if(!deployer||t.from.toLowerCase()!==deployer.toLowerCase())continue;
+      if(t.isError==="1"||!t.input||t.input==="0x")continue;
+      let txt="";try{txt=new TextDecoder().decode(Uint8Array.from(t.input.slice(2).match(/.{2}/g).map(h=>parseInt(h,16))));}catch{continue;}
+      const m=txt.match(/^PONS\|(0x[0-9a-fA-F]{40})\|([a-z]+:\d+(?:,[a-z]+:\d+)*)$/);
+      if(!m||m[1].toLowerCase()!==token.toLowerCase())continue;
+      const parts=m[2].split(",").map(p=>{const[id,pct]=p.split(":");return{id,pct:Number(pct)};});
+      const ok=parts.every(p=>CH_ORGS.some(o=>o.id===p.id)&&Number.isInteger(p.pct)&&p.pct>0)&&parts.reduce((a,b)=>a+b.pct,0)===100&&new Set(parts.map(p=>p.id)).size===parts.length;
+      if(ok)cur=parts; // asc order → latest memo wins
+    }
+    return cur;
+  }catch(e){return null;}
+}
+
+async function renderCharityPanel(token,deployer,info){
+  const card=document.createElement("div");
+  card.className="card";card.style.marginTop="16px";
+  card.innerHTML=`<h1 style="font-size:20px;font-weight:500">Charity allocation <span style="color:var(--heart)">♥</span></h1>
+    <div id="ch-sub" style="font-size:13px;color:var(--mut);margin-top:6px">reading on-chain allocation…</div>
+    <div id="ch-body" style="margin-top:10px"></div>
+    <div id="ch-edit" style="margin-top:14px"></div>`;
+  app.appendChild(card);
+  const body=card.querySelector("#ch-body"),sub=card.querySelector("#ch-sub"),edit=card.querySelector("#ch-edit");
+
+  let claimable="0.00000";
+  try{const sim=await pc.simulateContract({account:CHARITY,address:LOCKER,abi:lockerAbi,functionName:"collectFees",args:[token]});const[a0,a1]=sim.result;const w=(info&&info.isToken0)?a1:a0;claimable=(+formatUnits(w,18)).toFixed(5);}catch(e){}
+
+  const cur=await readAllocation(token,deployer);
+  let orgStats={};
+  try{const st=await (await fetch("https://raw.githubusercontent.com/ponsfork/pons-fork-stats/main/stats.json")).json();orgStats=(st.tokens?.[token.toLowerCase()]||{}).charityOrgs||{};}catch(e){}
+  const fE=w=>{const v=Number(formatUnits(BigInt(w||"0"),18));return v>=1?v.toFixed(3):v.toFixed(4);};
+
+  sub.textContent=cur
+    ?("fees are split: "+cur.map(p=>p.pct+"% "+(CH_ORGS.find(o=>o.id===p.id)?.name||p.id)).join(" · "))
+    :"no allocation yet — claimed fees are held until the deployer picks the causes";
+
+  let rows=`<div class="orgline" style="border-top:1px solid var(--line)"><span style="color:var(--faint)">Claimable for charity right now</span><span class="mono">${claimable} ETH</span></div>`;
+  for(const o of CH_ORGS){
+    const rec=orgStats[o.address.toLowerCase()]||{};
+    const pct=cur?cur.find(p=>p.id===o.id)?.pct:undefined;
+    if(!pct&&!(Number(rec.ethWei)>0)&&!(Number(rec.tok)>0))continue;
+    const tokPart=Number(rec.tok)>0?` + ${fmt(Number(formatUnits(BigInt(rec.tok),18)))} tokens`:"";
+    rows+=`<div class="orgline"><span>${pct?`<b>${pct}%</b> · `:""}${esc(o.name)}</span><span class="mono">${fE(rec.ethWei)} ETH${tokPart}</span></div>`;
+  }
+  body.innerHTML=rows;
+
+  edit.innerHTML=`<button class="btn h" id="ch-connect">Connect wallet to manage</button>
+    <div style="margin-top:6px;font-size:12px;color:var(--faint)">only the deployer (${deployer?short(deployer):"—"}) can change the split</div>`;
+  edit.querySelector("#ch-connect").onclick=()=>chConnect(token,deployer,cur,edit);
+}
+
+async function chConnect(token,deployer,cur,edit){
+  if(!window.ethereum){edit.innerHTML='<span style="color:var(--red);font-size:13px">No wallet found — install MetaMask (or any EIP-1193 wallet) and reload.</span>';return;}
+  try{
+    const accs=await window.ethereum.request({method:"eth_requestAccounts"});
+    chAccount=getAddress(accs[0]);
+    const cid=await window.ethereum.request({method:"eth_chainId"});
+    if(cid!=="0x1237"){
+      try{await window.ethereum.request({method:"wallet_switchEthereumChain",params:[{chainId:"0x1237"}]});}
+      catch(e){if(e.code===4902){await window.ethereum.request({method:"wallet_addEthereumChain",params:[{chainId:"0x1237",chainName:"Robinhood Chain",nativeCurrency:{name:"Ether",symbol:"ETH",decimals:18},rpcUrls:[RPC],blockExplorerUrls:[EXPLORER]}]});}else throw e;}
+    }
+    if(!deployer||chAccount.toLowerCase()!==deployer.toLowerCase()){
+      edit.innerHTML=`<span style="color:var(--red);font-size:13px">Connected ${short(chAccount)} is not the deployer — only ${deployer?short(deployer):"the deployer"} can manage this token's split.</span>`;
+      return;
+    }
+    renderEditor(token,cur,edit);
+  }catch(e){edit.innerHTML='<span style="color:var(--red);font-size:13px">Connection failed: '+esc(e.message||e)+'</span>';}
+}
+
+function renderEditor(token,cur,edit){
+  edit.innerHTML=`<div class="alloc-rows"></div>
+    <div class="alloc-foot"><button class="btn s mini" id="al-add">+ Add cause</button><span class="total-badge" id="al-total">0%</span><button class="btn h mini" id="al-save" disabled>Save allocation ♥</button></div>
+    <div id="al-note" style="margin-top:8px;font-size:12px;color:var(--faint)"></div>`;
+  const rowsEl=edit.querySelector(".alloc-rows"),totalEl=edit.querySelector("#al-total"),saveBtn=edit.querySelector("#al-save");
+  function addRow(id,pct){
+    const r=document.createElement("div");r.className="alloc-row";
+    r.innerHTML=`<select>${CH_ORGS.map(o=>`<option value="${o.id}"${o.id===id?" selected":""}>${esc(o.name)}</option>`).join("")}</select><input type="number" min="1" max="100" step="1" value="${pct??100}"/><span style="color:var(--faint)">%</span><button class="rm" title="remove">×</button>`;
+    r.querySelector(".rm").onclick=()=>{r.remove();recalc();};
+    r.querySelector("select").onchange=recalc;r.querySelector("input").oninput=recalc;
+    rowsEl.appendChild(r);
+  }
+  const parts=()=>[...rowsEl.querySelectorAll(".alloc-row")].map(r=>({id:r.querySelector("select").value,pct:Math.round(Number(r.querySelector("input").value)||0)}));
+  function recalc(){const p=parts();const total=p.reduce((a,b)=>a+b.pct,0);const dup=new Set(p.map(x=>x.id)).size!==p.length;totalEl.textContent=total+"%"+(dup?" · duplicate":"");totalEl.className="total-badge"+(total===100&&!dup&&p.length?" ok":"");saveBtn.disabled=!(total===100&&!dup&&p.length&&p.every(x=>x.pct>0));}
+  edit.querySelector("#al-add").onclick=()=>{if(rowsEl.children.length<CH_ORGS.length){addRow(undefined,0);recalc();}};
+  saveBtn.onclick=async()=>{
+    const p=parts();saveBtn.disabled=true;saveBtn.textContent="Confirm in wallet…";
+    try{
+      const memo=`PONS|${token}|${p.map(x=>`${x.id}:${x.pct}`).join(",")}`;
+      const bytes=new TextEncoder().encode(memo);
+      const data="0x"+[...bytes].map(b=>b.toString(16).padStart(2,"0")).join("");
+      const tx=await window.ethereum.request({method:"eth_sendTransaction",params:[{from:chAccount,to:CHARITY,value:"0x0",data}]});
+      saveBtn.textContent="Saved on-chain ✓";
+      edit.querySelector("#al-note").innerHTML=`allocation updated · <a href="${EXPLORER}/tx/${tx}" target="_blank" style="color:inherit">tx ↗</a> — the engine applies it within ~1 minute`;
+      setTimeout(()=>{saveBtn.disabled=false;saveBtn.textContent="Save allocation ♥";},4000);
+    }catch(e){saveBtn.disabled=false;saveBtn.textContent="Save allocation ♥";alert("Transaction rejected or failed: "+(e.message||e));}
+  };
+  if(cur&&cur.length)cur.forEach(p=>addRow(p.id,p.pct));else addRow(CH_ORGS[0].id,100);
+  recalc();
+}
+
 // ── deployer profile: /profile/0x… — every pons deploy of a wallet, live ──
 async function renderProfile(addrRaw){
   const who=getAddress(addrRaw);
