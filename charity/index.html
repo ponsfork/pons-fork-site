@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Charity · Pons Fork</title>
+<meta name="description" content="Pons Fork Charity — route your token's creator fees to a real charity. 0% service fee: every claimed fee goes to the cause you choose. Fully on-chain." />
+<link rel="icon" type="image/jpeg" href="/favicon.jpg" />
+<link rel="apple-touch-icon" href="/favicon.jpg" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#f6f6f1;--ink:#121513;--mut:#5c635d;--faint:#9aa39c;
+    --line:rgba(18,21,19,.09);--card:#ffffff;
+    --burn:#ea580c;--burn-bg:rgba(234,88,12,.1);
+    --hold:#0e9f6e;--hold-bg:rgba(14,159,110,.1);
+    --heart:#d6336c;--heart-bg:rgba(214,51,108,.09);
+    --red:#d23c3c;--red-bg:rgba(210,60,60,.08);
+    --sans:"Geist",system-ui,-apple-system,"Segoe UI",sans-serif;
+    --serif:"Instrument Serif",Georgia,serif;
+    --mono:ui-monospace,"SF Mono","Cascadia Code",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;margin:0}
+  html,body{background:var(--bg)}
+  body{font-family:var(--sans);color:var(--ink);line-height:1.55;-webkit-font-smoothing:antialiased;font-size:15px}
+  .wrap{max-width:1060px;margin:0 auto;padding:0 24px 60px}
+  .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+  a{color:inherit}
+
+  .nav{display:flex;align-items:center;gap:22px;padding:20px 0;border-bottom:1px solid var(--line)}
+  .brand{display:inline-flex;align-items:center;text-decoration:none;line-height:0}
+  .brand-logo{height:84px;width:auto;display:block;mix-blend-mode:multiply;transition:opacity .15s}
+  .brand:hover .brand-logo{opacity:.7}
+  .sp{flex:1}
+  .nav a.link{color:var(--mut);text-decoration:none;font-size:13.5px}
+  .nav a.link:hover{color:var(--ink)}
+  .nav a.link.active{color:var(--heart);font-weight:500}
+  .btn{font-size:14px;font-weight:500;text-decoration:none;padding:11px 22px;border-radius:999px;display:inline-flex;align-items:center;gap:8px;transition:.15s;border:0;cursor:pointer;font-family:var(--sans)}
+  .btn.p{color:var(--bg);background:var(--ink)} .btn.p:hover{opacity:.85}
+  .btn.s{color:var(--ink);border:1px solid rgba(18,21,19,.18);background:transparent} .btn.s:hover{border-color:var(--ink)}
+  .btn.h{color:#fff;background:var(--heart)} .btn.h:hover{opacity:.88}
+  .btn[disabled]{opacity:.5;cursor:not-allowed}
+
+  .hero{padding:64px 0 48px}
+  .kicker{font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--heart)}
+  .hero h1{font-weight:400;font-size:clamp(40px,7.5vw,76px);line-height:1;letter-spacing:-.04em;margin-top:14px}
+  .hero h1 .it{font-family:var(--serif);font-style:italic}
+  .hero p{font-size:16px;color:var(--mut);max-width:58ch;margin-top:22px;line-height:1.6}
+  .hero p b{font-weight:500;color:var(--ink)}
+  .zero{display:inline-flex;align-items:center;gap:8px;margin-top:18px;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--heart);background:var(--heart-bg);padding:7px 14px;border-radius:999px}
+
+  .sec{padding:44px 0;border-top:1px solid var(--line)}
+  .sec h2{font-weight:500;font-size:clamp(26px,4vw,38px);letter-spacing:-.025em}
+  .sec h2 .it{font-family:var(--serif);font-style:italic;font-weight:400}
+  .sec .lead{color:var(--mut);font-size:14.5px;margin-top:10px;max-width:60ch}
+
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:28px}
+  .step{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px}
+  .step .n{font-size:12px;color:var(--faint);font-weight:500}
+  .step h3{font-size:16px;font-weight:500;margin:10px 0 6px}
+  .step p{font-size:13px;color:var(--mut);line-height:1.6}
+  @media(max-width:760px){.steps{grid-template-columns:1fr}}
+  .wallet{display:flex;align-items:center;gap:8px;margin-top:14px;font-family:var(--mono);font-size:12px;color:var(--ink);background:var(--bg);border:1px solid var(--line);padding:10px 13px;border-radius:11px;cursor:pointer;word-break:break-all}
+  .wallet .cp{margin-left:auto;color:var(--faint);flex:none}
+  .wallet:hover .cp{color:var(--ink)}
+
+  .orgs{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:28px}
+  .org{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px}
+  .org h3{font-size:16px;font-weight:500;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+  .org .tag{font-size:10px;font-weight:600;letter-spacing:.04em;padding:3px 9px;border-radius:999px;color:var(--heart);background:var(--heart-bg)}
+  .org .tag.soon{color:var(--faint);background:rgba(18,21,19,.06)}
+  .org p{font-size:13px;color:var(--mut);margin-top:7px;line-height:1.55}
+  .org .addr{margin-top:12px;font-family:var(--mono);font-size:11.5px;color:var(--mut);word-break:break-all}
+  .org .src{display:inline-block;margin-top:8px;font-size:12px;color:var(--ink);text-decoration:none;border-bottom:1px solid var(--line)}
+  .org .src:hover{border-color:var(--ink)}
+  .org.dim{opacity:.55}
+  @media(max-width:700px){.orgs{grid-template-columns:1fr}}
+
+  .panel{margin-top:28px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:26px}
+  .panel .muted{color:var(--faint);font-size:13px}
+  .tokrow{border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-top:14px}
+  .tokrow .top{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .tokrow .nm{font-weight:500}
+  .tokrow .tick{color:var(--faint);font-family:var(--mono);font-size:12.5px}
+  .badge{font-size:10.5px;font-weight:600;padding:4px 10px;border-radius:999px}
+  .badge.ch{color:var(--heart);background:var(--heart-bg)}
+  .badge.a{color:var(--burn);background:var(--burn-bg)}
+  .badge.c{color:var(--hold);background:var(--hold-bg)}
+  .badge.off{color:var(--faint);background:rgba(18,21,19,.06)}
+  .tokrow .fees{margin-left:auto;text-align:right}
+  .tokrow .fees .v{font-family:var(--mono);font-weight:500}
+  .tokrow .fees .l{font-size:11px;color:var(--faint)}
+  .choose{display:flex;align-items:center;gap:10px;margin-top:14px;flex-wrap:wrap}
+  select{font:inherit;font-size:13.5px;padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+  .chosen{font-size:12.5px;color:var(--hold);font-weight:500}
+  .warn{font-size:12.5px;color:var(--burn)}
+  .status-line{margin-top:12px;font-size:12.5px;color:var(--mut)}
+
+  .note{margin-top:26px;border:1px solid var(--line);border-radius:18px;padding:20px 24px;background:var(--card)}
+  .note h3{font-size:14px;font-weight:500}
+  .note p{font-size:13px;color:var(--mut);margin-top:5px;line-height:1.6}
+  .foot{display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding:26px 0 0;border-top:1px solid var(--line);margin-top:44px}
+  .foot a.soc{color:var(--mut);text-decoration:none;font-size:13px}
+  .foot a.soc:hover{color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="nav">
+    <a class="brand" href="/" aria-label="Pons Fork — home"><img class="brand-logo" src="/logo.jpg" alt="Pons Fork" width="400" height="400" /></a>
+    <div class="sp"></div>
+    <a class="link" href="/">Home</a>
+    <a class="link active" href="/charity/">Charity</a>
+    <a class="link" href="https://pons-fork.gitbook.io/pons-fork-docs/">Docs ↗</a>
+    <button class="btn p" id="connect">Connect wallet</button>
+  </nav>
+
+  <header class="hero">
+    <div class="kicker">Charity</div>
+    <h1>Fees that <span class="it">give back.</span></h1>
+    <p>Point your token's fee wallet at the Charity address. Pons Fork claims the creator fees and sends them —
+       <b>all of them</b> — to the cause you choose. St. Jude, GiveWell, EFF and more.
+       Every step is a public transaction on Robinhood Chain.</p>
+    <span class="zero">♥ 0% service fee — every claimed fee goes to charity</span>
+  </header>
+
+  <section class="sec">
+    <h2>How it <span class="it">works.</span></h2>
+    <div class="steps">
+      <div class="step">
+        <div class="n">01</div><h3>Point</h3>
+        <p>Set your token's fee wallet to the Charity address — at launch or any time after:</p>
+        <div class="wallet" data-a="0x416C762f134B48Ef303bB0b8cAF7D1DB86F719d2"><span>0x416C762f134B48Ef303bB0b8cAF7D1DB86F719d2</span><span class="cp">⧉</span></div>
+      </div>
+      <div class="step">
+        <div class="n">02</div><h3>Accumulate</h3>
+        <p>Pons Fork claims your token's fees automatically and holds them for you. Nothing is taken — the service fee on Charity is <b>zero</b>.</p>
+      </div>
+      <div class="step">
+        <div class="n">03</div><h3>Choose &amp; give</h3>
+        <p>Connect the wallet you deployed with, pick a charity below — and from then on your fees flow to it automatically. Change the cause any time.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="orgs">
+    <h2>The <span class="it">causes.</span></h2>
+    <p class="lead">Verified crypto-donation addresses, straight from each organization's official page.</p>
+    <div class="orgs" id="org-cards"></div>
+  </section>
+
+  <section class="sec" id="manage">
+    <h2>Your <span class="it">tokens.</span></h2>
+    <p class="lead">Connect the wallet you launched your tokens with. We'll find your pons deploys, show the fees accrued for charity, and let you direct them.</p>
+    <div class="panel" id="panel">
+      <span class="muted">Wallet not connected — press “Connect wallet” above.</span>
+    </div>
+    <div class="note">
+      <h3>How your choice is stored</h3>
+      <p>Your selection is written on-chain: a 0-ETH transaction from your deployer wallet to the Charity address with the choice in its data.
+         No accounts, no backend — anyone can verify it. The engine only accepts a choice signed by the token's original deployer.</p>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <a class="soc" href="/">Home</a>
+    <a class="soc" href="https://t.me/ponsfork">Telegram</a>
+    <a class="soc" href="https://pons-fork.gitbook.io/pons-fork-docs/">Docs</a>
+    <a class="soc" href="https://github.com/ponsfork">GitHub</a>
+  </footer>
+</div>
+
+<script type="module">
+import { createPublicClient, http, getAddress, isAddress, formatEther, erc20Abi, parseAbi, stringToHex } from "https://esm.sh/viem@2.23.2";
+
+const RPC="https://rpc.mainnet.chain.robinhood.com";
+const EXPLORER="https://robinhoodchain.blockscout.com";
+const FACTORY="0xA5aAb3F0c6EeadF30Ef1D3Eb997108E976351feB";
+const LOCKER="0x736D76699C26D0d966744cAe304C000d471f7F35";
+const CHARITY="0x416C762f134B48Ef303bB0b8cAF7D1DB86F719d2";
+const AGENTIC="0x31A4F14D8ac9E89F2Ac6000b375B125468Cd1AF3";
+const CASHBACK="0x6ab6bD6416997Ad39cBDA34C9b2Fc912D57A8eF4";
+const CHAIN_HEX="0x1237"; // 4663
+
+const ORGS=[
+  {id:"stjude",  name:"St. Jude Children's Research Hospital", desc:"Leading pediatric cancer research and treatment — families never receive a bill.", addr:"0x92EE2370b56DC32794A6CD72585dC01d4288D314", src:"https://www.stjude.org/donate/crypto.html", live:true},
+  {id:"givewell",name:"GiveWell", desc:"Funds the most cost-effective, evidence-backed charities in global health.", addr:"0x4647c3b4c5ba4efa6d8197331de00c26ce36e8e6", src:"https://www.givewell.org/about/donate/cryptocurrency", live:true},
+  {id:"eff",     name:"Electronic Frontier Foundation", desc:"Defends digital privacy, security and free expression since 1990.", addr:"0x1ca9EB2a5C213d417269134b80111F57e1644105", src:"https://www.eff.org/pages/cryptocurrency-donations", live:true},
+  {id:"fpf",     name:"Freedom of the Press Foundation", desc:"Protects and defends public-interest journalism.", addr:"0xC423F8aEDf1753Bc0ab58e455B0b5421CafE949e", src:"https://freedom.press/donate/cryptocurrency/", live:true},
+  {id:"archive", name:"Internet Archive", desc:"Non-profit digital library preserving the web, books and culture for everyone.", addr:"", src:"https://archive.org/donate/cryptocurrency", live:false},
+];
+
+const lockerAbi=parseAbi(["function feeRedirects(address) view returns (address)","function collectFees(address) returns (uint256,uint256)"]);
+const factoryAbi=parseAbi(["function getLaunchedToken(address) view returns ((address token,address deployer,address pairedToken,address positionManager,uint256 positionId,uint256 dexId,uint256 launchConfigId,uint256 restrictionsEndBlock,uint256 supply,bool isToken0,uint24 poolFee,bool exists,uint256 initialBuyAmount))"]);
+const deployedEvent=parseAbi(["event TokenDeployed(address indexed token,address indexed deployer,address indexed dexFactory,address pairToken,uint256 dexId,uint256 launchConfigId)"])[0];
+
+const pc=createPublicClient({transport:http(RPC)});
+const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const short=a=>a.slice(0,6)+"…"+a.slice(-4);
+
+// ── charity cards ──
+document.getElementById("org-cards").innerHTML=ORGS.map(o=>`
+  <div class="org${o.live?"":" dim"}">
+    <h3>${esc(o.name)} <span class="tag${o.live?"":" soon"}">${o.live?"live":"verifying address"}</span></h3>
+    <p>${esc(o.desc)}</p>
+    ${o.live?`<div class="addr">${o.addr}</div>`:`<div class="addr">address being re-verified with the org</div>`}
+    <a class="src" href="${o.src}" target="_blank" rel="noopener">official source ↗</a>
+  </div>`).join("");
+
+// ── copy widgets ──
+document.querySelectorAll(".wallet").forEach(w=>{w.addEventListener("click",()=>{navigator.clipboard?.writeText(w.getAttribute("data-a"));const c=w.querySelector(".cp");if(c){c.textContent="✓";setTimeout(()=>c.textContent="⧉",1200);}});});
+
+// ── wallet panel ──
+const panel=document.getElementById("panel");
+const btn=document.getElementById("connect");
+let account=null;
+
+btn.addEventListener("click",connect);
+async function connect(){
+  if(!window.ethereum){panel.innerHTML='<span class="warn">No wallet found — install MetaMask (or any EIP-1193 wallet) and reload.</span>';return;}
+  try{
+    const accs=await window.ethereum.request({method:"eth_requestAccounts"});
+    account=getAddress(accs[0]);
+    const cid=await window.ethereum.request({method:"eth_chainId"});
+    if(cid!==CHAIN_HEX){
+      try{await window.ethereum.request({method:"wallet_switchEthereumChain",params:[{chainId:CHAIN_HEX}]});}
+      catch(e){
+        if(e.code===4902){await window.ethereum.request({method:"wallet_addEthereumChain",params:[{chainId:CHAIN_HEX,chainName:"Robinhood Chain",nativeCurrency:{name:"Ether",symbol:"ETH",decimals:18},rpcUrls:[RPC],blockExplorerUrls:[EXPLORER]}]});}
+        else throw e;
+      }
+    }
+    btn.textContent=short(account);
+    await loadTokens();
+  }catch(e){panel.innerHTML='<span class="warn">Connection failed: '+esc(e.message||e)+'</span>';}
+}
+
+async function myChoices(){
+  // read the deployer's on-chain choice memos (txs from user -> charity wallet)
+  const out={};
+  try{
+    const r=await (await fetch(`${EXPLORER}/api?module=account&action=txlist&address=${account}&sort=asc`)).json();
+    for(const t of (r.result||[])){
+      if(!t.to||t.to.toLowerCase()!==CHARITY.toLowerCase())continue;
+      if(!t.input||t.input==="0x")continue;
+      try{
+        const txt=new TextDecoder().decode(Uint8Array.from(t.input.slice(2).match(/.{2}/g).map(h=>parseInt(h,16))));
+        const m=txt.match(/^PONS\|([a-z]+)\|(0x[0-9a-fA-F]{40})$/);
+        if(m&&ORGS.some(o=>o.id===m[1]&&o.live))out[m[2].toLowerCase()]=m[1];
+      }catch{}
+    }
+  }catch{}
+  return out;
+}
+
+async function loadTokens(){
+  panel.innerHTML='<span class="muted">Reading your deploys from Robinhood Chain…</span>';
+  try{
+    const [logs,choices]=await Promise.all([
+      pc.getLogs({address:FACTORY,event:deployedEvent,args:{deployer:account},fromBlock:0n,toBlock:"latest"}),
+      myChoices(),
+    ]);
+    const tokens=[...new Set(logs.map(l=>getAddress(l.args.token)))];
+    if(!tokens.length){panel.innerHTML='<span class="muted">No pons deploys found for '+short(account)+'. Launch a token on pons.family first.</span>';return;}
+    panel.innerHTML="";
+    for(const t of tokens){
+      const [sym,name,redir,info]=await Promise.all([
+        pc.readContract({address:t,abi:erc20Abi,functionName:"symbol"}).catch(()=>"?"),
+        pc.readContract({address:t,abi:erc20Abi,functionName:"name"}).catch(()=>"Unknown"),
+        pc.readContract({address:LOCKER,abi:lockerAbi,functionName:"feeRedirects",args:[t]}).catch(()=>"0x0000000000000000000000000000000000000000"),
+        pc.readContract({address:FACTORY,abi:factoryAbi,functionName:"getLaunchedToken",args:[t]}).catch(()=>null),
+      ]);
+      const r=getAddress(redir);
+      const onCharity=r===getAddress(CHARITY);
+      const badge=onCharity?'<span class="badge ch">Charity ✓</span>':r===getAddress(AGENTIC)?'<span class="badge a">Agentic Mode</span>':r===getAddress(CASHBACK)?'<span class="badge c">Cashback</span>':'<span class="badge off">not on Pons Fork</span>';
+      let fees="";
+      if(onCharity&&info){
+        try{
+          const sim=await pc.simulateContract({account:CHARITY,address:LOCKER,abi:lockerAbi,functionName:"collectFees",args:[t]});
+          const [a0,a1]=sim.result;const weth=info.isToken0?a1:a0;
+          fees='<div class="fees"><div class="v">'+(+formatEther(weth)).toFixed(5)+' ETH</div><div class="l">claimable for charity</div></div>';
+        }catch{fees='<div class="fees"><div class="v">0 ETH</div><div class="l">claimable now</div></div>';}
+      }
+      const row=document.createElement("div");row.className="tokrow";
+      const chosen=choices[t.toLowerCase()];
+      const opts=ORGS.filter(o=>o.live).map(o=>`<option value="${o.id}"${chosen===o.id?" selected":""}>${esc(o.name)}</option>`).join("");
+      row.innerHTML=`<div class="top"><div><span class="nm">${esc(name)}</span> <span class="tick">$${esc(sym)}</span></div>${badge}${fees}</div>`
+        +(onCharity
+          ?`<div class="choose"><select id="sel-${t}">${opts}</select><button class="btn h" data-t="${t}">Direct my fees ♥</button>${chosen?`<span class="chosen">current: ${esc(ORGS.find(o=>o.id===chosen)?.name||chosen)}</span>`:'<span class="warn">no cause chosen yet — fees are held until you pick</span>'}</div>`
+          :`<div class="status-line">To use Charity, set this token's fee wallet to <span class="mono">${short(CHARITY)}</span> (full address in step 01 above).</div>`);
+      panel.appendChild(row);
+    }
+    panel.querySelectorAll("button[data-t]").forEach(b=>b.addEventListener("click",()=>saveChoice(b)));
+  }catch(e){panel.innerHTML='<span class="warn">Failed to load: '+esc(e.message||e)+'</span>';}
+}
+
+async function saveChoice(b){
+  const t=b.getAttribute("data-t");
+  const sel=document.getElementById("sel-"+t);
+  const id=sel.value;
+  const org=ORGS.find(o=>o.id===id);
+  if(!org)return;
+  b.disabled=true;b.textContent="Confirm in wallet…";
+  try{
+    const data=stringToHex(`PONS|${id}|${t}`);
+    const tx=await window.ethereum.request({method:"eth_sendTransaction",params:[{from:account,to:CHARITY,value:"0x0",data}]});
+    b.textContent="Saved on-chain ✓";
+    const row=b.closest(".tokrow");const note=row.querySelector(".chosen,.warn");
+    if(note){note.className="chosen";note.innerHTML=`current: ${esc(org.name)} · <a href="${EXPLORER}/tx/${tx}" target="_blank" style="color:inherit">tx ↗</a>`;}
+    setTimeout(()=>{b.disabled=false;b.textContent="Direct my fees ♥";},4000);
+  }catch(e){b.disabled=false;b.textContent="Direct my fees ♥";alert("Transaction rejected or failed: "+(e.message||e));}
+}
+</script>
+</body>
+</html>
