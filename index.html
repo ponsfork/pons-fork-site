@@ -112,6 +112,14 @@
   .row .metric .v{font-family:var(--mono);font-weight:500;font-size:14px}
   .row .metric .l{font-size:11px;color:var(--faint)}
   .row .arrow{color:var(--faint);flex:none}
+  .tick .ccopy{cursor:pointer;color:var(--faint);margin-left:6px;font-size:11px}
+  .tick .ccopy:hover{color:var(--ink)}
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-top:24px}
+  .tab{font:inherit;font-size:13px;font-weight:500;cursor:pointer;color:var(--mut);background:var(--card);border:1px solid var(--line);padding:8px 14px;border-radius:999px;transition:.12s}
+  .tab:hover{color:var(--ink)}
+  .tab.active{color:var(--bg);background:var(--ink);border-color:var(--ink)}
+  .tab b{font-family:var(--mono);font-weight:600;margin-left:4px;opacity:.7}
+  .row.hide{display:none}
   .empty{padding:36px 4px;color:var(--mut);font-size:14px;border-bottom:1px solid var(--line)}
 
   /* ── steps ── */
@@ -186,7 +194,7 @@
         <div class="desc">Fees buy your token back from the market and send it to the burn address. Supply shrinks with every cycle.</div>
         <div class="wallet" data-a="0x31A4F14D8ac9E89F2Ac6000b375B125468Cd1AF3"><span>0x31A4F14D8ac9E89F2Ac6000b375B125468Cd1AF3</span><span class="cp">⧉</span></div>
         <div class="cnt"><b id="ag-count">–</b> tokens live in Agentic Mode</div>
-        <div class="cnt">Σ <b id="ag-sum">–</b> bought back &amp; burned</div>
+        <div class="cnt"><b id="ag-sum">–</b> bought back &amp; burned</div>
       </div>
       <div class="mc">
         <div class="n">02</div>
@@ -194,7 +202,7 @@
         <div class="desc">Fees are paid straight to everyone holding the token, proportional to their balance. Just hold and receive ETH.</div>
         <div class="wallet" data-a="0x6ab6bD6416997Ad39cBDA34C9b2Fc912D57A8eF4"><span>0x6ab6bD6416997Ad39cBDA34C9b2Fc912D57A8eF4</span><span class="cp">⧉</span></div>
         <div class="cnt"><b id="cb-count">–</b> tokens live in Cashback</div>
-        <div class="cnt">Σ <b id="cb-sum">–</b> paid out to holders</div>
+        <div class="cnt"><b id="cb-sum">–</b> paid out to holders</div>
       </div>
       <div class="mc wide">
         <div class="n">03</div>
@@ -202,7 +210,7 @@
         <div class="desc">Route your token's fees to a real charity — St. Jude, GiveWell, EFF and more. <b>0% service fee</b>: everything claimed goes to the cause you pick. Point your fee wallet here:</div>
         <div class="wallet" data-a="0x416C762f134B48Ef303bB0b8cAF7D1DB86F719d2"><span>0x416C762f134B48Ef303bB0b8cAF7D1DB86F719d2</span><span class="cp">⧉</span></div>
         <div class="cnt"><b id="ch-count">–</b> tokens live in Charity</div>
-        <div class="cnt">Σ <b id="ch-sum">–</b> donated to causes</div>
+        <div class="cnt"><b id="ch-sum">–</b> donated to causes</div>
         <a class="golink" href="/charity/">Choose your cause →</a>
       </div>
     </div>
@@ -211,6 +219,7 @@
   <section class="sec" id="tokens">
     <div class="kicker">Live now</div>
     <div class="live-line"><span class="big" id="tok-total">–</span><span class="dot-sep">·</span><span id="tok-sub" style="color:var(--mut)">reading Robinhood Chain…</span></div>
+    <div class="tabs" id="tok-tabs" style="display:none"></div>
     <div class="rows" id="live-tokens"><div class="empty">Reading Robinhood Chain…</div></div>
   </section>
 
@@ -312,13 +321,25 @@ const ethDon=t=>fmtEth((STATS[t.toLowerCase()]||{}).charityDonatedWei);
   document.getElementById("tok-total").textContent=all.length+(all.length===1?" token":" tokens");
   document.getElementById("tok-sub").textContent=all.length?"connected · live from Robinhood Chain":"none connected yet · live from Robinhood Chain";
   if(!all.length){box.innerHTML='<div class="empty">No tokens connected yet — point your fee wallet at Agentic Mode or Cashback to be the first.</div>';return;}
+
+  // filter tabs (scales as the token count grows)
+  const tabsEl=document.getElementById("tok-tabs");
+  tabsEl.style.display="flex";
+  tabsEl.innerHTML=[["all","All",all.length],["a","Agentic",ag.length],["c","Cashback",cb.length],["h","Charity",ch.length]]
+    .map(([f,label,n],i)=>`<button class="tab${i===0?" active":""}" data-f="${f}">${label}<b>${n}</b></button>`).join("");
+  tabsEl.addEventListener("click",e=>{const b=e.target.closest(".tab");if(!b)return;
+    tabsEl.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));
+    const f=b.getAttribute("data-f");
+    box.querySelectorAll(".row").forEach(r=>r.classList.toggle("hide",f!=="all"&&r.getAttribute("data-mode")!==f));
+  });
+
   box.innerHTML="";
   for(const [t,mode] of all){
     let m; try{m=await meta(t);}catch(e){m={name:"Unknown",symbol:"?",pct:0};}
-    const el=document.createElement("a");el.href="/token/"+t;el.className="row";
+    const el=document.createElement("a");el.href="/token/"+t;el.className="row";el.setAttribute("data-mode",mode);
     const sym3=esc(String(m.symbol).slice(0,3).toUpperCase());
     el.innerHTML='<div class="ic">'+sym3+'</div>'
-      +'<div><div class="nm">'+esc(m.name)+'</div><div class="tick">$'+esc(m.symbol)+'</div></div>'
+      +'<div><div class="nm">'+esc(m.name)+'</div><div class="tick">$'+esc(m.symbol)+' <span class="ccopy" data-a="'+t+'" title="copy contract">⧉</span></div></div>'
       +'<span class="badge '+(mode==="a"?"a":mode==="c"?"c":"h")+'">'+(mode==="a"?"Agentic Mode":mode==="c"?"Cashback":"Charity")+'</span>'
       +(mode==="a"
         ? '<div class="metric"><div class="v">'+m.pct.toFixed(2)+'%</div><div class="l">supply burned</div></div>'
@@ -326,6 +347,8 @@ const ethDon=t=>fmtEth((STATS[t.toLowerCase()]||{}).charityDonatedWei);
         ? '<div class="metric"><div class="v">'+ethDist(t)+'</div><div class="l">ETH distributed</div></div>'
         : '<div class="metric"><div class="v">'+ethDon(t)+'</div><div class="l">ETH donated</div></div>')
       +'<span class="arrow">→</span>';
+    const cc=el.querySelector(".ccopy");
+    cc.addEventListener("click",ev=>{ev.preventDefault();ev.stopPropagation();navigator.clipboard&&navigator.clipboard.writeText(t);cc.textContent="✓";setTimeout(()=>cc.textContent="⧉",1200);});
     box.appendChild(el);
     applyLogo(el,t,String(m.symbol).slice(0,3).toUpperCase());
   }
