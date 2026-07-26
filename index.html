@@ -108,9 +108,11 @@
   .row img.ic{object-fit:cover;background:#fff}
   .row .nm{font-weight:500;font-size:14.5px}
   .row .tick{color:var(--faint);font-size:12.5px;font-family:var(--mono)}
-  .row .metric{margin-left:auto;text-align:right}
-  .row .metric .v{font-family:var(--mono);font-weight:500;font-size:14px}
-  .row .metric .l{font-size:11px;color:var(--faint)}
+  .row .mcap{margin-left:auto;text-align:right;min-width:96px}
+  .row .metric{text-align:right;min-width:120px}
+  .row .mcap .v,.row .metric .v{font-family:var(--mono);font-weight:500;font-size:14px}
+  .row .mcap .l,.row .metric .l{font-size:11px;color:var(--faint)}
+  @media(max-width:640px){.row .metric{display:none}}
   .row .arrow{color:var(--faint);flex:none}
   .tick .ccopy{cursor:pointer;color:var(--faint);margin-left:6px;font-size:11px}
   .tick .ccopy:hover{color:var(--ink)}
@@ -311,12 +313,15 @@ if(cbtn)cbtn.addEventListener("click",async()=>{
 const fmtEth=w=>{const v=Number(formatUnits(BigInt(w||"0"),18));return v>=1?v.toFixed(3):v.toFixed(4);};
 const ethDist=t=>fmtEth((STATS[t.toLowerCase()]||{}).distributedWei);
 const ethDon=t=>fmtEth((STATS[t.toLowerCase()]||{}).charityDonatedWei);
+const mcapOf=t=>Number((STATS[t.toLowerCase()]||{}).mcapUsd||0);
+const fmtUsd=n=>{if(!n)return "—";if(n>=1e9)return "$"+(n/1e9).toFixed(2)+"B";if(n>=1e6)return "$"+(n/1e6).toFixed(2)+"M";if(n>=1e3)return "$"+(n/1e3).toFixed(1)+"K";return "$"+Math.round(n);};
 (async()=>{
   const [ag,cb,ch]=await Promise.all([listTokens(AGENTIC),listTokens(CASHBACK),listTokens(CHARITY)]);
   document.getElementById("ag-count").textContent=ag.length;
   document.getElementById("cb-count").textContent=cb.length;
   document.getElementById("ch-count").textContent=ch.length;
   const all=[...ag.map(t=>[t,"a"]),...cb.map(t=>[t,"c"]),...ch.map(t=>[t,"h"])];
+  all.sort((x,y)=>mcapOf(y[0])-mcapOf(x[0]));  // biggest market cap first
   const box=document.getElementById("live-tokens");
   document.getElementById("tok-total").textContent=all.length+(all.length===1?" token":" tokens");
   document.getElementById("tok-sub").textContent=all.length?"connected · live from Robinhood Chain":"none connected yet · live from Robinhood Chain";
@@ -341,6 +346,7 @@ const ethDon=t=>fmtEth((STATS[t.toLowerCase()]||{}).charityDonatedWei);
     el.innerHTML='<div class="ic">'+sym3+'</div>'
       +'<div><div class="nm">'+esc(m.name)+'</div><div class="tick">$'+esc(m.symbol)+' <span class="ccopy" data-a="'+t+'" title="copy contract">⧉</span></div></div>'
       +'<span class="badge '+(mode==="a"?"a":mode==="c"?"c":"h")+'">'+(mode==="a"?"Agentic Mode":mode==="c"?"Cashback":"Charity")+'</span>'
+      +'<div class="mcap"><div class="v">'+fmtUsd(mcapOf(t))+'</div><div class="l">market cap</div></div>'
       +(mode==="a"
         ? '<div class="metric"><div class="v">'+m.pct.toFixed(2)+'%</div><div class="l">supply burned</div></div>'
         : mode==="c"
