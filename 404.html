@@ -36,9 +36,8 @@
   .nav a.link{color:var(--mut);text-decoration:none;font-size:13.5px}
   .nav a.link:hover{color:var(--ink)}
   .connect{position:relative}
-  .connect button{font:inherit;font-size:13px;font-weight:500;color:var(--bg);cursor:not-allowed;background:var(--ink);border:0;padding:8px 16px;border-radius:999px}
-  .connect .soon{position:absolute;top:calc(100% + 8px);right:0;white-space:nowrap;font-size:12px;color:var(--bg);background:var(--ink);padding:5px 10px;border-radius:8px;opacity:0;transition:.15s;pointer-events:none;z-index:5}
-  .connect:hover .soon{opacity:1}
+  .connect button{font:inherit;font-size:13px;font-weight:500;color:var(--bg);cursor:pointer;background:var(--ink);border:0;padding:8px 16px;border-radius:999px;transition:.15s}
+  .connect button:hover{opacity:.85}
 
   .card{margin-top:26px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:30px}
   .tk{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
@@ -123,7 +122,7 @@
     <a class="link" href="/charity/" style="color:#d6336c;font-weight:500">Charity ♥</a>
     <a class="link" href="https://pons-fork.gitbook.io/pons-fork-docs/">Docs ↗</a>
     <a class="link" href="https://x.com/ponsfork">X ↗</a>
-    <span class="connect"><button>Connect wallet</button><span class="soon">Coming soon</span></span>
+    <span class="connect"><button id="nav-connect">Connect wallet</button></span>
   </nav>
 
   <div id="app">
@@ -443,6 +442,16 @@ async function renderProfile(addrRaw){
   }
 }
 main();
+
+// nav connect: connect the wallet and jump to its profile
+const navBtn=document.getElementById("nav-connect");
+if(navBtn)navBtn.addEventListener("click",async()=>{
+  if(!window.ethereum){alert("No wallet found — install MetaMask (or any EIP-1193 wallet) and reload.");return;}
+  try{
+    const accs=await window.ethereum.request({method:"eth_requestAccounts"});
+    if(accs&&accs[0]){navBtn.textContent=accs[0].slice(0,6)+"…"+accs[0].slice(-4);location.href="/profile/"+accs[0];}
+  }catch(e){}
+});
 </script>
 </body>
 </html>

@@ -43,9 +43,8 @@
   .net{display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--hold);background:var(--hold-bg);padding:6px 12px;border-radius:999px}
   .net .dot{width:6px;height:6px;border-radius:50%;background:var(--hold)}
   .connect{position:relative}
-  .connect button{font:inherit;font-size:13px;font-weight:500;color:var(--bg);cursor:not-allowed;background:var(--ink);border:0;padding:9px 18px;border-radius:999px}
-  .connect .soon{position:absolute;top:calc(100% + 8px);right:0;white-space:nowrap;font-size:12px;color:var(--bg);background:var(--ink);padding:5px 10px;border-radius:8px;opacity:0;transform:translateY(-3px);transition:.15s;pointer-events:none;z-index:5}
-  .connect:hover .soon{opacity:1;transform:translateY(0)}
+  .connect button{font:inherit;font-size:13px;font-weight:500;color:var(--bg);cursor:pointer;background:var(--ink);border:0;padding:9px 18px;border-radius:999px;transition:.15s}
+  .connect button:hover{opacity:.85}
   @media(max-width:760px){.nav a.link,.net{display:none}}
 
   /* ── hero ── */
@@ -154,7 +153,7 @@
     <a class="link" href="/charity/" style="color:var(--heart);font-weight:500">Charity ♥</a>
     <a class="link" href="https://pons-fork.gitbook.io/pons-fork-docs/">Docs ↗</a>
     <a class="link" href="https://x.com/ponsfork">X ↗</a>
-    <span class="connect"><button>Connect wallet</button><span class="soon">Coming soon</span></span>
+    <span class="connect"><button id="connect">Connect wallet</button></span>
   </nav>
 
   <header class="hero">
@@ -187,6 +186,7 @@
         <div class="desc">Fees buy your token back from the market and send it to the burn address. Supply shrinks with every cycle.</div>
         <div class="wallet" data-a="0x31A4F14D8ac9E89F2Ac6000b375B125468Cd1AF3"><span>0x31A4F14D8ac9E89F2Ac6000b375B125468Cd1AF3</span><span class="cp">⧉</span></div>
         <div class="cnt"><b id="ag-count">–</b> tokens live in Agentic Mode</div>
+        <div class="cnt">Σ <b id="ag-sum">–</b> bought back &amp; burned</div>
       </div>
       <div class="mc">
         <div class="n">02</div>
@@ -194,12 +194,15 @@
         <div class="desc">Fees are paid straight to everyone holding the token, proportional to their balance. Just hold and receive ETH.</div>
         <div class="wallet" data-a="0x6ab6bD6416997Ad39cBDA34C9b2Fc912D57A8eF4"><span>0x6ab6bD6416997Ad39cBDA34C9b2Fc912D57A8eF4</span><span class="cp">⧉</span></div>
         <div class="cnt"><b id="cb-count">–</b> tokens live in Cashback</div>
+        <div class="cnt">Σ <b id="cb-sum">–</b> paid out to holders</div>
       </div>
       <div class="mc wide">
         <div class="n">03</div>
         <h3>Charity <span class="badge h">Fees to a good cause</span></h3>
         <div class="desc">Route your token's fees to a real charity — St. Jude, GiveWell, EFF and more. <b>0% service fee</b>: everything claimed goes to the cause you pick. Point your fee wallet here:</div>
         <div class="wallet" data-a="0x416C762f134B48Ef303bB0b8cAF7D1DB86F719d2"><span>0x416C762f134B48Ef303bB0b8cAF7D1DB86F719d2</span><span class="cp">⧉</span></div>
+        <div class="cnt"><b id="ch-count">–</b> tokens live in Charity</div>
+        <div class="cnt">Σ <b id="ch-sum">–</b> donated to causes</div>
         <a class="golink" href="/charity/">Choose your cause →</a>
       </div>
     </div>
@@ -283,8 +286,19 @@ function applyLogo(scope,token,fallbackText){
 }
 async function listTokens(w){const c=await pc.readContract({address:LOCKER,abi:lockerAbi,functionName:"feeRecipientTokenCount",args:[w]});const n=Number(c);if(!n)return[];const out=[];for(let i=0;i<n;i++){try{const t=await pc.readContract({address:LOCKER,abi:lockerAbi,functionName:"feeRecipientTokens",args:[w,BigInt(i)]});if(t)out.push(getAddress(t));}catch(e){}}return out;}
 async function meta(t){const[n,s,sup,d,b]=await Promise.all([pc.readContract({address:t,abi:erc20Abi,functionName:"name"}).catch(()=>"Unknown"),pc.readContract({address:t,abi:erc20Abi,functionName:"symbol"}).catch(()=>"?"),pc.readContract({address:t,abi:erc20Abi,functionName:"totalSupply"}).catch(()=>0n),pc.readContract({address:t,abi:erc20Abi,functionName:"decimals"}).catch(()=>18),pc.readContract({address:t,abi:erc20Abi,functionName:"balanceOf",args:[DEAD]}).catch(()=>0n)]);const dec=Number(d),ts=Number(formatUnits(sup,dec)),bn=Number(formatUnits(b,dec));return{name:n,symbol:s,pct:ts>0?bn/ts*100:0};}
-let STATS={};
-try{STATS=((await (await fetch("https://raw.githubusercontent.com/ponsfork/pons-fork-stats/main/stats.json")).json()).tokens)||{};}catch(e){}
+let STATS={},TOT={},ETHUSD=0;
+try{const j=await (await fetch("https://raw.githubusercontent.com/ponsfork/pons-fork-stats/main/stats.json")).json();STATS=j.tokens||{};TOT=j.totals||{};}catch(e){}
+try{ETHUSD=(await (await fetch("https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd")).json()).ethereum.usd||0;}catch(e){}
+const money=w=>{const v=Number(formatUnits(BigInt(w||"0"),18));const usd=ETHUSD?` (~$${(v*ETHUSD).toFixed(v*ETHUSD>=100?0:2)})`:"";return (v>=1?v.toFixed(3):v.toFixed(4))+" ETH"+usd;};
+for(const [id,key] of [["ag-sum","agenticBuybackWei"],["cb-sum","cashbackDistributedWei"],["ch-sum","charityDonatedWei"]]){const el=document.getElementById(id);if(el)el.textContent=money(TOT[key]);}
+const cbtn=document.getElementById("connect");
+if(cbtn)cbtn.addEventListener("click",async()=>{
+  if(!window.ethereum){alert("No wallet found — install MetaMask (or any EIP-1193 wallet) and reload.");return;}
+  try{
+    const accs=await window.ethereum.request({method:"eth_requestAccounts"});
+    if(accs&&accs[0]){cbtn.textContent=accs[0].slice(0,6)+"…"+accs[0].slice(-4);location.href="/profile/"+accs[0];}
+  }catch(e){}
+});
 const fmtEth=w=>{const v=Number(formatUnits(BigInt(w||"0"),18));return v>=1?v.toFixed(3):v.toFixed(4);};
 const ethDist=t=>fmtEth((STATS[t.toLowerCase()]||{}).distributedWei);
 const ethDon=t=>fmtEth((STATS[t.toLowerCase()]||{}).charityDonatedWei);
@@ -292,6 +306,7 @@ const ethDon=t=>fmtEth((STATS[t.toLowerCase()]||{}).charityDonatedWei);
   const [ag,cb,ch]=await Promise.all([listTokens(AGENTIC),listTokens(CASHBACK),listTokens(CHARITY)]);
   document.getElementById("ag-count").textContent=ag.length;
   document.getElementById("cb-count").textContent=cb.length;
+  document.getElementById("ch-count").textContent=ch.length;
   const all=[...ag.map(t=>[t,"a"]),...cb.map(t=>[t,"c"]),...ch.map(t=>[t,"h"])];
   const box=document.getElementById("live-tokens");
   document.getElementById("tok-total").textContent=all.length+(all.length===1?" token":" tokens");
