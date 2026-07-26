@@ -16,6 +16,7 @@
     --line:rgba(18,21,19,.09);--card:#ffffff;
     --burn:#ea580c;--burn-bg:rgba(234,88,12,.1);
     --hold:#0e9f6e;--hold-bg:rgba(14,159,110,.1);
+    --heart:#d6336c;--heart-bg:rgba(214,51,108,.09);
     --red:#d23c3c;--red-bg:rgba(210,60,60,.08);
     --sans:"Geist",system-ui,-apple-system,"Segoe UI",sans-serif;
     --serif:"Instrument Serif",Georgia,serif;
@@ -60,6 +61,7 @@
   .mode{margin-left:auto;font-size:10.5px;font-weight:600;letter-spacing:.02em;padding:5px 11px;border-radius:999px}
   .mode.a{color:var(--burn);background:var(--burn-bg)}
   .mode.c{color:var(--hold);background:var(--hold-bg)}
+  .mode.h{color:var(--heart);background:var(--heart-bg)}
   .status .sub{flex-basis:100%;font-size:13px;color:var(--mut)}
 
   .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:18px}
@@ -109,6 +111,7 @@ const LOCKER="0x736D76699C26D0d966744cAe304C000d471f7F35";
 const FACTORY="0xA5aAb3F0c6EeadF30Ef1D3Eb997108E976351feB";
 const AGENTIC="0x31A4F14D8ac9E89F2Ac6000b375B125468Cd1AF3";
 const CASHBACK="0x6ab6bD6416997Ad39cBDA34C9b2Fc912D57A8eF4";
+const CHARITY="0x416C762f134B48Ef303bB0b8cAF7D1DB86F719d2";
 const DEAD="0x000000000000000000000000000000000000dEaD";
 
 const lockerAbi=parseAbi(["function feeRedirects(address) view returns (address)"]);
@@ -165,24 +168,26 @@ async function main(){
     const recip=getAddress(redir);
     const isAgentic = recip===getAddress(AGENTIC);
     const isCashback = recip===getAddress(CASHBACK);
-    const enabled = isAgentic || isCashback;
+    const isCharity = recip===getAddress(CHARITY);
+    const enabled = isAgentic || isCashback || isCharity;
     const deployer = info ? info.deployer : "";
 
-    // cumulative ETH distributed to holders (cashback) — from the published stats
-    let distEth = "0";
+    // cumulative totals (cashback payouts / charity donations) — from the published stats
+    let distEth = "0", donEth = "0";
     try {
       const st = await (await fetch("https://raw.githubusercontent.com/ponsfork/pons-fork-stats/main/stats.json")).json();
-      const w = (st.tokens?.[token.toLowerCase()] || {}).distributedWei || "0";
-      const v = Number(formatUnits(BigInt(w), 18));
-      distEth = v >= 1 ? v.toFixed(3) : v.toFixed(4);
+      const rec = st.tokens?.[token.toLowerCase()] || {};
+      const f = (w) => { const v = Number(formatUnits(BigInt(w || "0"), 18)); return v >= 1 ? v.toFixed(3) : v.toFixed(4); };
+      distEth = f(rec.distributedWei);
+      donEth = f(rec.charityDonatedWei);
     } catch (e) {}
 
     const statusHtml = enabled
       ? `<div class="status on"><span class="dot"></span><span class="txt">Pons Fork enabled</span>
-           <span class="mode ${isAgentic?'a':'c'}">${isAgentic?'Agentic Mode · Buyback & Burn':'Cashback · Holder rewards'}</span>
-           <span class="sub">Fees are routed to Pons Fork right now — ${isAgentic?'bought back &amp; burned':'paid to holders in ETH'}, automatically.</span></div>`
+           <span class="mode ${isAgentic?'a':isCashback?'c':'h'}">${isAgentic?'Agentic Mode · Buyback & Burn':isCashback?'Cashback · Holder rewards':'Charity · Fees to good causes'}</span>
+           <span class="sub">Fees are routed to Pons Fork right now — ${isAgentic?'bought back &amp; burned':isCashback?'paid to holders in ETH':'donated to the causes the dev picked (0% service fee)'}, automatically.</span></div>`
       : `<div class="status off"><span class="dot"></span><span class="txt">Not connected</span>
-           <span class="sub">This token's fees are not routed to Pons Fork right now. Only the token's dev can point them at Agentic Mode or Cashback.</span></div>`;
+           <span class="sub">This token's fees are not routed to Pons Fork right now. Only the token's dev can point them at Agentic Mode, Cashback or Charity.</span></div>`;
 
     app.innerHTML=`
       <div class="card">
@@ -197,6 +202,8 @@ async function main(){
         <div class="stats">
           ${isCashback
             ? `<div class="st"><div class="l">ETH distributed</div><div class="v c">${distEth}<small> ETH</small></div></div>`
+            : isCharity
+            ? `<div class="st"><div class="l">ETH donated</div><div class="v" style="color:var(--heart)">${donEth}<small> ETH</small></div></div>`
             : `<div class="st"><div class="l">Supply burned</div><div class="v a">${burnedPct.toFixed(2)}<small>%</small></div></div>`}
           <div class="st"><div class="l">Tokens burned</div><div class="v">${fmt(burned)}</div></div>
           <div class="st"><div class="l">Total supply</div><div class="v">${fmt(sup)}</div></div>

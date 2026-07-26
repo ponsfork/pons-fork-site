@@ -254,7 +254,7 @@
 </script>
 <script type="module">
 import {createPublicClient,http,getAddress,formatUnits,erc20Abi,parseAbi,decodeFunctionData} from "https://esm.sh/viem@2.23.2";
-const RPC="https://rpc.mainnet.chain.robinhood.com",LOCKER="0x736D76699C26D0d966744cAe304C000d471f7F35",FACTORY="0xA5aAb3F0c6EeadF30Ef1D3Eb997108E976351feB",AGENTIC="0x31A4F14D8ac9E89F2Ac6000b375B125468Cd1AF3",CASHBACK="0x6ab6bD6416997Ad39cBDA34C9b2Fc912D57A8eF4",DEAD="0x000000000000000000000000000000000000dEaD";
+const RPC="https://rpc.mainnet.chain.robinhood.com",LOCKER="0x736D76699C26D0d966744cAe304C000d471f7F35",FACTORY="0xA5aAb3F0c6EeadF30Ef1D3Eb997108E976351feB",AGENTIC="0x31A4F14D8ac9E89F2Ac6000b375B125468Cd1AF3",CASHBACK="0x6ab6bD6416997Ad39cBDA34C9b2Fc912D57A8eF4",CHARITY="0x416C762f134B48Ef303bB0b8cAF7D1DB86F719d2",DEAD="0x000000000000000000000000000000000000dEaD";
 const lockerAbi=parseAbi(["function feeRecipientTokenCount(address) view returns (uint256)","function feeRecipientTokens(address,uint256) view returns (address)"]);
 const deployedEvent=parseAbi(["event TokenDeployed(address indexed token,address indexed deployer,address indexed dexFactory,address pairToken,uint256 dexId,uint256 launchConfigId)"])[0];
 const launchAbi=parseAbi(["function launchToken((string name,string symbol,string logo,string description,(string twitter,string telegram,string discord,string website,string farcaster) socials,address feeWallet) params,uint256 launchConfigId,uint256 dexId,bytes32 salt) payable returns (address)"]);
@@ -285,12 +285,14 @@ async function listTokens(w){const c=await pc.readContract({address:LOCKER,abi:l
 async function meta(t){const[n,s,sup,d,b]=await Promise.all([pc.readContract({address:t,abi:erc20Abi,functionName:"name"}).catch(()=>"Unknown"),pc.readContract({address:t,abi:erc20Abi,functionName:"symbol"}).catch(()=>"?"),pc.readContract({address:t,abi:erc20Abi,functionName:"totalSupply"}).catch(()=>0n),pc.readContract({address:t,abi:erc20Abi,functionName:"decimals"}).catch(()=>18),pc.readContract({address:t,abi:erc20Abi,functionName:"balanceOf",args:[DEAD]}).catch(()=>0n)]);const dec=Number(d),ts=Number(formatUnits(sup,dec)),bn=Number(formatUnits(b,dec));return{name:n,symbol:s,pct:ts>0?bn/ts*100:0};}
 let STATS={};
 try{STATS=((await (await fetch("https://raw.githubusercontent.com/ponsfork/pons-fork-stats/main/stats.json")).json()).tokens)||{};}catch(e){}
-const ethDist=t=>{const w=(STATS[t.toLowerCase()]||{}).distributedWei||"0";const v=Number(formatUnits(BigInt(w),18));return v>=1?v.toFixed(3):v.toFixed(4);};
+const fmtEth=w=>{const v=Number(formatUnits(BigInt(w||"0"),18));return v>=1?v.toFixed(3):v.toFixed(4);};
+const ethDist=t=>fmtEth((STATS[t.toLowerCase()]||{}).distributedWei);
+const ethDon=t=>fmtEth((STATS[t.toLowerCase()]||{}).charityDonatedWei);
 (async()=>{
-  const [ag,cb]=await Promise.all([listTokens(AGENTIC),listTokens(CASHBACK)]);
+  const [ag,cb,ch]=await Promise.all([listTokens(AGENTIC),listTokens(CASHBACK),listTokens(CHARITY)]);
   document.getElementById("ag-count").textContent=ag.length;
   document.getElementById("cb-count").textContent=cb.length;
-  const all=[...ag.map(t=>[t,"a"]),...cb.map(t=>[t,"c"])];
+  const all=[...ag.map(t=>[t,"a"]),...cb.map(t=>[t,"c"]),...ch.map(t=>[t,"h"])];
   const box=document.getElementById("live-tokens");
   document.getElementById("tok-total").textContent=all.length+(all.length===1?" token":" tokens");
   document.getElementById("tok-sub").textContent=all.length?"connected · live from Robinhood Chain":"none connected yet · live from Robinhood Chain";
@@ -302,10 +304,12 @@ const ethDist=t=>{const w=(STATS[t.toLowerCase()]||{}).distributedWei||"0";const
     const sym3=esc(String(m.symbol).slice(0,3).toUpperCase());
     el.innerHTML='<div class="ic">'+sym3+'</div>'
       +'<div><div class="nm">'+esc(m.name)+'</div><div class="tick">$'+esc(m.symbol)+'</div></div>'
-      +'<span class="badge '+(mode==="a"?"a":"c")+'">'+(mode==="a"?"Agentic Mode":"Cashback")+'</span>'
+      +'<span class="badge '+(mode==="a"?"a":mode==="c"?"c":"h")+'">'+(mode==="a"?"Agentic Mode":mode==="c"?"Cashback":"Charity")+'</span>'
       +(mode==="a"
         ? '<div class="metric"><div class="v">'+m.pct.toFixed(2)+'%</div><div class="l">supply burned</div></div>'
-        : '<div class="metric"><div class="v">'+ethDist(t)+'</div><div class="l">ETH distributed</div></div>')
+        : mode==="c"
+        ? '<div class="metric"><div class="v">'+ethDist(t)+'</div><div class="l">ETH distributed</div></div>'
+        : '<div class="metric"><div class="v">'+ethDon(t)+'</div><div class="l">ETH donated</div></div>')
       +'<span class="arrow">→</span>';
     box.appendChild(el);
     applyLogo(el,t,String(m.symbol).slice(0,3).toUpperCase());
