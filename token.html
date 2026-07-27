@@ -419,8 +419,8 @@ let _profiles=null;
 async function readProfiles(){
   if(_profiles) return _profiles;
   let raw={};
-  try{ raw=((await (await fetch(PROFILES_URL+"?t="+Date.now())).json()).profiles)||{}; }
-  catch(e){ try{ raw=((await (await fetch(API_BASE+"/profiles.json")).json()).profiles)||{}; }catch(e2){ raw={}; } }
+  try{ raw=((await (await fetch(API_BASE+"/profiles.json?t="+Date.now())).json()).profiles)||{}; }
+  catch(e){ try{ raw=((await (await fetch(PROFILES_URL+"?t="+Date.now())).json()).profiles)||{}; }catch(e2){ raw={}; } }
   _profiles={}; for(const [k,v] of Object.entries(raw)) _profiles[k.toLowerCase()]=v; return _profiles;
 }
 function pfToast(m){
@@ -483,6 +483,8 @@ async function mountX(who){
   await handleXCallback(who);
 }
 
+// reflect an already-connected wallet in the nav button
+(async()=>{ try{ if(window.ethereum){ const a=await window.ethereum.request({method:"eth_accounts"}); if(a&&a[0]){ const b=document.getElementById("nav-connect"); if(b) b.textContent=getAddress(a[0]).slice(0,6)+"\u2026"+getAddress(a[0]).slice(-4); } } }catch(e){} })();
 async function renderProfile(addrRaw){
   const who=getAddress(addrRaw);
   document.title="Profile "+short(who)+" · Pons Fork";
