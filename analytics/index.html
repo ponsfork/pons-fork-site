@@ -100,6 +100,7 @@
   a.tr:hover{background:rgba(18,21,19,.025)}
   .tr .rank{width:22px;color:var(--faint);font-size:12px;font-family:var(--mono);flex:none;text-align:right}
   .tr .ic{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:600;font-size:11px;font-family:var(--mono);flex:none;color:#fff}
+  .tr img.ic{object-fit:cover;background:#fff}
   .tr .nm{font-weight:500;font-size:14.5px}
   .tr .tick{color:var(--faint);font-size:12px;font-family:var(--mono)}
   .tr .val{margin-left:auto;text-align:right}
@@ -167,9 +168,31 @@
 </div>
 
 <script type="module">
-import {createPublicClient,http,getAddress,formatUnits,erc20Abi} from "https://esm.sh/viem@2.23.2";
+import {createPublicClient,http,getAddress,formatUnits,erc20Abi,parseAbi,decodeFunctionData} from "https://esm.sh/viem@2.23.2";
 const RPC="https://rpc.mainnet.chain.robinhood.com";
+const FACTORY="0xA5aAb3F0c6EeadF30Ef1D3Eb997108E976351feB";
 const pc=createPublicClient({transport:http(RPC)});
+const deployedEvent=parseAbi(["event TokenDeployed(address indexed token,address indexed deployer,address indexed dexFactory,address pairToken,uint256 dexId,uint256 launchConfigId)"])[0];
+const launchAbi=parseAbi(["function launchToken((string name,string symbol,string logo,string description,(string twitter,string telegram,string discord,string website,string farcaster) socials,address feeWallet) params,uint256 launchConfigId,uint256 dexId,bytes32 salt) payable returns (address)"]);
+const ipfsHttp=u=>!u?"":(u.startsWith("ipfs://")?"https://ipfs.io/ipfs/"+u.slice(7).replace(/^ipfs\//,""):u);
+// Token logo lives only in the launchToken() calldata (IPFS URI) — find the launch tx via the indexed TokenDeployed log, decode input.
+async function tokenLogo(token){
+  try{
+    const logs=await pc.getLogs({address:FACTORY,event:deployedEvent,args:{token},fromBlock:0n,toBlock:"latest"});
+    if(!logs.length)return "";
+    const tx=await pc.getTransaction({hash:logs[0].transactionHash});
+    const {args}=decodeFunctionData({abi:launchAbi,data:tx.input});
+    return ipfsHttp(args[0].logo);
+  }catch(e){return "";}
+}
+function applyLogo(scope,token,fallbackText){
+  tokenLogo(token).then(src=>{
+    if(!src)return; const cur=scope.querySelector(".ic"); if(!cur)return;
+    const img=document.createElement("img"); img.className="ic"; img.src=src; img.alt="";
+    img.onerror=()=>{const d=document.createElement("div");d.className="ic";d.style.background="var(--ink)";d.style.color="#fff";d.textContent=fallbackText;img.replaceWith(d);};
+    cur.replaceWith(img);
+  });
+}
 const ORG={
   "0x4647c3b4c5ba4efa6d8197331de00c26ce36e8e6":"GiveWell",
   "0x92ee2370b56dc32794a6cd72585dc01d4288d314":"St. Jude Children's Research Hospital",
@@ -248,6 +271,7 @@ async function main(){
       `<div><div class="nm">${esc(r.name)}</div><div class="tick">$${esc(r.sym)}</div></div>`+
       `<div class="val"><div class="v">${fUsd(r.mc)}</div><div class="l">market cap</div></div><div class="arrow">→</div></a>`;
   }).join("");
+  document.querySelectorAll("#top .tr").forEach((el,i)=>{const m=metas[i];if(m)applyLogo(el,getAddress(m.a),String(m.sym).slice(0,3).toUpperCase());});
 }
 main();
 </script>
