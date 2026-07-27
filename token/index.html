@@ -497,8 +497,7 @@ async function mountX(who){
   await handleXCallback(who);
 }
 
-// reflect an already-connected wallet in the nav button
-(async()=>{ try{ if(window.ethereum){ const a=await window.ethereum.request({method:"eth_accounts"}); if(a&&a[0]){ const b=document.getElementById("nav-connect"); if(b) b.textContent=getAddress(a[0]).slice(0,6)+"\u2026"+getAddress(a[0]).slice(-4); } } }catch(e){} })();
+// nav connect opens the Privy wallet hub (/wallet)
 async function renderProfile(addrRaw){
   const who=getAddress(addrRaw);
   document.title="Profile "+short(who)+" · Pons Fork";
@@ -563,14 +562,9 @@ async function renderProfile(addrRaw){
 main();
 
 // nav connect: connect the wallet and jump to its profile
+// Connect wallet opens the Privy wallet hub (/wallet)
 const navBtn=document.getElementById("nav-connect");
-if(navBtn)navBtn.addEventListener("click",async()=>{
-  if(!window.ethereum){alert("No wallet found — install MetaMask (or any EIP-1193 wallet) and reload.");return;}
-  try{
-    const accs=await window.ethereum.request({method:"eth_requestAccounts"});
-    if(accs&&accs[0]){navBtn.textContent=accs[0].slice(0,6)+"…"+accs[0].slice(-4);location.href="/profile/"+accs[0];}
-  }catch(e){}
-});
+if(navBtn)navBtn.addEventListener("click",()=>{location.href="/wallet/";});
 </script>
 </body>
 </html>
