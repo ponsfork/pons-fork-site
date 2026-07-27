@@ -283,6 +283,15 @@ async function main(){
 
     const cp=document.getElementById("cp");
     if(cp) cp.onclick=()=>{navigator.clipboard?.writeText(token);cp.textContent="✓";setTimeout(()=>cp.textContent="⧉",1200);};
+    if(deployer){ (async()=>{ /* token-x-status */
+      const _p=(await readProfiles())[deployer.toLowerCase()]; let _v=null;
+      document.querySelectorAll(".stats .st").forEach(st=>{ const l=st.querySelector(".l"); if(l&&l.textContent==="Deployer") _v=st.querySelector(".v"); });
+      if(!_v) return; const _l=document.createElement("div"); _l.style.cssText="font-size:11.5px;margin-top:4px";
+      if(_p){ _l.innerHTML='<a href="https://x.com/'+esc(_p.handle)+'" target="_blank" style="color:var(--ink);text-decoration:none;border-bottom:1px solid var(--line)">𝕏 @'+esc(_p.handle)+'</a> <span style="color:#0e9f6e" title="verified">✓</span>'; }
+      else { _l.innerHTML='<span style="color:var(--faint)">𝕏 not connected</span>'; }
+      _v.appendChild(_l);
+    })(); }
+
     // Swap the text avatar for the real pons logo once it resolves; keep text on failure.
     tokenLogo(token).then(src=>{
       if(!src)return; const cur=document.querySelector(".tk .ic"); if(!cur)return;
