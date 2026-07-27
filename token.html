@@ -412,6 +412,77 @@ function renderEditor(token,cur,edit){
 }
 
 // ── deployer profile: /profile/0x… — every pons deploy of a wallet, live ──
+// ── wallet ↔ X (Twitter) linking (backend: api.ponsfork.com) ──
+const API_BASE="https://api.ponsfork.com";
+const PROFILES_URL="https://raw.githubusercontent.com/ponsfork/pons-fork-profiles/main/profiles.json";
+let _profiles=null;
+async function readProfiles(){
+  if(_profiles) return _profiles;
+  let raw={};
+  try{ raw=((await (await fetch(PROFILES_URL+"?t="+Date.now())).json()).profiles)||{}; }
+  catch(e){ try{ raw=((await (await fetch(API_BASE+"/profiles.json")).json()).profiles)||{}; }catch(e2){ raw={}; } }
+  _profiles={}; for(const [k,v] of Object.entries(raw)) _profiles[k.toLowerCase()]=v; return _profiles;
+}
+function pfToast(m){
+  let t=document.getElementById("pf-toast");
+  if(!t){ t=document.createElement("div"); t.id="pf-toast"; t.style.cssText="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#121513;color:#f6f6f1;padding:10px 16px;border-radius:10px;font-size:13px;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.22);transition:opacity .3s"; document.body.appendChild(t); }
+  t.textContent=m; t.style.opacity="1"; clearTimeout(t._h); t._h=setTimeout(()=>{t.style.opacity="0";},3200);
+}
+// these strings MUST match the backend (src/lib/wallet.ts) byte-for-byte
+function xLinkMsg(wallet,handle,nonce){ return ["Pons Fork — link X account","wallet: "+getAddress(wallet),"handle: @"+handle,"This link will be shown publicly on ponsfork.com.","nonce: "+nonce].join("\n"); }
+function xUnlinkMsg(wallet){ return ["Pons Fork — unlink X account","wallet: "+getAddress(wallet)].join("\n"); }
+const utf8Hex=s=>"0x"+[...new TextEncoder().encode(s)].map(b=>b.toString(16).padStart(2,"0")).join("");
+async function xAccount(){ if(!window.ethereum) return null; const a=await window.ethereum.request({method:"eth_requestAccounts"}).catch(()=>[]); return (a&&a[0])?getAddress(a[0]):null; }
+
+async function xConnect(who){
+  if(!window.ethereum){ pfToast("No wallet found — install a wallet and reload."); return; }
+  const acc=await xAccount(); if(!acc) return;
+  if(acc!==who){ if(confirm("This profile belongs to a different wallet. Open your own profile?")) location.href="/profile/"+acc; return; }
+  location.href=API_BASE+"/x/start?wallet="+who;
+}
+async function xUnlink(who){
+  const acc=await xAccount(); if(!acc) return;
+  if(acc!==who){ pfToast("Connect "+short(who)+" to unlink."); return; }
+  let sig; try{ sig=await window.ethereum.request({method:"personal_sign",params:[utf8Hex(xUnlinkMsg(who)),acc]}); }catch(e){ return; }
+  try{ const r=await fetch(API_BASE+"/unlink",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({wallet:who,signature:sig})}); const j=await r.json(); if(j.ok){ pfToast("Unlinked ✓"); setTimeout(()=>location.reload(),700); } else pfToast(j.error||"unlink failed"); }
+  catch(e){ pfToast("unlink failed"); }
+}
+// after returning from X OAuth: /profile/<wallet>?xlink=<nonce>&handle=<h>
+async function handleXCallback(who){
+  const q=new URLSearchParams(location.search); const nonce=q.get("xlink"); if(!nonce) return;
+  const handle=q.get("handle"); const clean=()=>history.replaceState({},"","/profile/"+who);
+  if(nonce==="error"||nonce==="expired"||!handle){ pfToast("X connect failed — try again."); clean(); return; }
+  if(!window.ethereum){ pfToast("Open in a wallet browser to finish linking."); return; }
+  const acc=await xAccount();
+  if(acc!==who){ pfToast("Connect "+short(who)+" to finish linking @"+handle+"."); return; }
+  let sig; try{ sig=await window.ethereum.request({method:"personal_sign",params:[utf8Hex(xLinkMsg(who,handle,nonce)),acc]}); }catch(e){ pfToast("Signature cancelled."); return; }
+  try{
+    const r=await fetch(API_BASE+"/link",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({wallet:who,nonce,signature:sig})});
+    const j=await r.json();
+    if(j.ok){ pfToast("Linked @"+j.handle+" ✓"); clean(); setTimeout(()=>location.reload(),900); }
+    else { pfToast(j.error||"link failed"); clean(); }
+  }catch(e){ pfToast("link failed"); }
+}
+// inject the X row into the profile header + wire buttons
+async function mountX(who){
+  const prof=(await readProfiles())[who.toLowerCase()];
+  const head=app.querySelector(".tk > div:last-child");
+  if(head){
+    const row=document.createElement("div");
+    row.style.cssText="margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px";
+    const btn="cursor:pointer;font:inherit;font-size:12.5px;font-weight:500;color:#f6f6f1;background:#121513;border:0;padding:6px 13px;border-radius:999px";
+    if(prof){
+      row.innerHTML='<a href="https://x.com/'+esc(prof.handle)+'" target="_blank" style="text-decoration:none;font-weight:500;color:var(--ink);border-bottom:1px solid var(--line)">𝕏 @'+esc(prof.handle)+'</a><span class="muted" style="font-size:11.5px;color:var(--hold,#0e9f6e)">✓ verified</span><span style="flex:1"></span><a id="xunlink" class="muted" style="cursor:pointer;font-size:12px;border-bottom:1px solid var(--line)">unlink</a>';
+    } else {
+      row.innerHTML='<span class="muted" style="font-size:12.5px">No X linked</span><button id="xbtn" style="'+btn+'">Connect 𝕏</button>';
+    }
+    head.appendChild(row);
+    const b=document.getElementById("xbtn"); if(b) b.onclick=()=>xConnect(who);
+    const u=document.getElementById("xunlink"); if(u) u.onclick=()=>xUnlink(who);
+  }
+  await handleXCallback(who);
+}
+
 async function renderProfile(addrRaw){
   const who=getAddress(addrRaw);
   document.title="Profile "+short(who)+" · Pons Fork";
@@ -468,6 +539,7 @@ async function renderProfile(addrRaw){
         el.replaceWith(img);
       });
     }
+    await mountX(who);
   }catch(e){
     app.innerHTML=`<div class="card"><div class="err">Couldn't load this profile.<br><span class="muted">${esc(e.message||"")}</span><br><br><a href="/">← back</a></div></div>`;
   }
