@@ -555,7 +555,7 @@ async function renderProfile(addrRaw){
         el.replaceWith(img);
       });
     }
-    await mountX(who);
+    /* X connect paused (account suspended) */
   }catch(e){
     app.innerHTML=`<div class="card"><div class="err">Couldn't load this profile.<br><span class="muted">${esc(e.message||"")}</span><br><br><a href="/">← back</a></div></div>`;
   }
