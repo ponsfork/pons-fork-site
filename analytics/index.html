@@ -101,6 +101,9 @@
   .tr .rank{width:22px;color:var(--faint);font-size:12px;font-family:var(--mono);flex:none;text-align:right}
   .tr .ic{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:600;font-size:11px;font-family:var(--mono);flex:none;color:#fff}
   .tr img.ic{object-fit:cover;background:#fff}
+  .tr img.orglogo{object-fit:contain;background:#fff;padding:4px;border:1px solid var(--line)}
+  .tr .ccopy{cursor:pointer;color:var(--faint);margin-left:6px;font-size:11px;font-family:var(--sans)}
+  .tr .ccopy:hover{color:var(--ink)}
   .tr .nm{font-weight:500;font-size:14.5px}
   .tr .tick{color:var(--faint);font-size:12px;font-family:var(--mono)}
   .tr .val{margin-left:auto;text-align:right}
@@ -193,11 +196,17 @@ function applyLogo(scope,token,fallbackText){
     cur.replaceWith(img);
   });
 }
+// Charity org logos are self-hosted; swap the initials avatar for the logo once it loads, keep initials on failure.
+function setOrgLogo(scope,id){
+  const cur=scope.querySelector(".ic"); if(!cur)return;
+  const img=new Image(); img.src="/orglogos/"+id+".png";
+  img.onload=()=>{img.className="ic orglogo";img.alt="";cur.replaceWith(img);};
+}
 const ORG={
-  "0x4647c3b4c5ba4efa6d8197331de00c26ce36e8e6":"GiveWell",
-  "0x92ee2370b56dc32794a6cd72585dc01d4288d314":"St. Jude Children's Research Hospital",
-  "0x1ca9eb2a5c213d417269134b80111f57e1644105":"Electronic Frontier Foundation",
-  "0xc423f8aedf1753bc0ab58e455b0b5421cafe949e":"Freedom of the Press Foundation",
+  "0x4647c3b4c5ba4efa6d8197331de00c26ce36e8e6":{name:"GiveWell",id:"givewell"},
+  "0x92ee2370b56dc32794a6cd72585dc01d4288d314":{name:"St. Jude Children's Research Hospital",id:"stjude"},
+  "0x1ca9eb2a5c213d417269134b80111f57e1644105":{name:"Electronic Frontier Foundation",id:"eff"},
+  "0xc423f8aedf1753bc0ab58e455b0b5421cafe949e":{name:"Freedom of the Press Foundation",id:"fpf"},
 };
 const COLORS={GiveWell:"#0e9f6e","St. Jude Children's Research Hospital":"#d6336c","Electronic Frontier Foundation":"#7c5cff","Freedom of the Press Foundation":"#ea580c"};
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -207,6 +216,9 @@ const fNum=n=>n>=1e6?(n/1e6).toFixed(2)+"M":n>=1e3?(n/1e3).toFixed(1)+"K":Math.r
 const fEth=s=>{const n=+s;return n?(n<0.001?n.toFixed(6):n.toFixed(4)):"0";};
 const ago=iso=>{const s=(Date.now()-new Date(iso))/1000;if(s<90)return "just now";if(s<5400)return Math.round(s/60)+"m ago";return Math.round(s/3600)+"h ago";};
 const kpi=(cls,l,v,sub)=>`<div class="kpi ${cls}"><div class="l">${l}</div><div class="v">${v}</div>${sub?`<div class="sub">${sub}</div>`:""}</div>`;
+
+// Copy-to-clipboard via delegation: works for rows added later and cancels the row's link navigation.
+document.addEventListener("click",ev=>{const cc=ev.target.closest(".ccopy");if(!cc)return;ev.preventDefault();ev.stopPropagation();const a=cc.getAttribute("data-a");if(navigator.clipboard)navigator.clipboard.writeText(a);cc.textContent="✓";setTimeout(()=>cc.textContent="⧉",1200);});
 
 async function main(){
   let j={};
@@ -243,17 +255,18 @@ async function main(){
 
   // charity leaderboard
   const cb=an.charityByOrg||{};
-  const rows=Object.entries(cb).map(([a,v])=>({a,name:ORG[a.toLowerCase()]||short(a),eth:(+formatUnits(BigInt(v.ethWei||"0"),18))}))
+  const rows=Object.entries(cb).map(([a,v])=>{const o=ORG[a.toLowerCase()]||{};return{a,name:o.name||short(a),id:o.id,eth:(+formatUnits(BigInt(v.ethWei||"0"),18))};})
     .filter(r=>r.eth>0).sort((x,y)=>y.eth-x.eth);
   const cEl=document.getElementById("charity");
   if(!rows.length){cEl.innerHTML='<div class="muted">No donations recorded yet.</div>';}
-  else cEl.innerHTML=rows.map((r,i)=>{
+  else{cEl.innerHTML=rows.map((r,i)=>{
     const col=COLORS[r.name]||"#5c635d";
     const init=r.name.replace(/[^A-Za-z]/g,"").slice(0,2).toUpperCase();
-    return `<div class="tr"><div class="rank">${i+1}</div><div class="ic" style="background:${col}">${init}</div>`+
-      `<div><div class="nm">${esc(r.name)}</div><div class="tick">${short(r.a)}</div></div>`+
-      `<div class="val"><div class="v">${r.eth<0.001?r.eth.toFixed(6):r.eth.toFixed(4)} ETH</div><div class="l">${usd?"≈ "+fUsd(r.eth*usd):"donated"}</div></div></div>`;
+    return `<a class="tr" href="/profile/${r.a}"><div class="rank">${i+1}</div><div class="ic" style="background:${col}">${init}</div>`+
+      `<div><div class="nm">${esc(r.name)}</div><div class="tick">${short(r.a)} <span class="ccopy" data-a="${r.a}" title="copy address">⧉</span></div></div>`+
+      `<div class="val"><div class="v">${r.eth<0.001?r.eth.toFixed(6):r.eth.toFixed(4)} ETH</div><div class="l">${usd?"≈ "+fUsd(r.eth*usd):"donated"}</div></div><div class="arrow">→</div></a>`;
   }).join("");
+  document.querySelectorAll("#charity .tr").forEach((el,i)=>{const r=rows[i];if(r&&r.id)setOrgLogo(el,r.id);});}
 
   // top tokens by market cap
   const tk=Object.entries(tokens).map(([a,v])=>({a,mc:+(v.mcapUsd||0)})).filter(r=>r.mc>0).sort((x,y)=>y.mc-x.mc).slice(0,10);
@@ -268,7 +281,7 @@ async function main(){
   tEl.innerHTML=metas.map((r,i)=>{
     const init=esc(String(r.sym).slice(0,3).toUpperCase());
     return `<a class="tr" href="/token/${r.a}"><div class="rank">${i+1}</div><div class="ic" style="background:var(--ink)">${init}</div>`+
-      `<div><div class="nm">${esc(r.name)}</div><div class="tick">$${esc(r.sym)}</div></div>`+
+      `<div><div class="nm">${esc(r.name)}</div><div class="tick">$${esc(r.sym)} <span class="ccopy" data-a="${r.a}" title="copy contract">⧉</span></div></div>`+
       `<div class="val"><div class="v">${fUsd(r.mc)}</div><div class="l">market cap</div></div><div class="arrow">→</div></a>`;
   }).join("");
   document.querySelectorAll("#top .tr").forEach((el,i)=>{const m=metas[i];if(m)applyLogo(el,getAddress(m.a),String(m.sym).slice(0,3).toUpperCase());});
