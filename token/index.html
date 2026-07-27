@@ -216,35 +216,40 @@ async function main(){
   const token=getAddress(raw);
   document.title=short(token)+" · Pons Fork";
   try{
-    const [name,symbol,supply,decimals,burnedBal,redir,info]=await Promise.all([
-      pc.readContract({address:token,abi:erc20Abi,functionName:"name"}).catch(()=> "Unknown"),
-      pc.readContract({address:token,abi:erc20Abi,functionName:"symbol"}).catch(()=> "?"),
-      pc.readContract({address:token,abi:erc20Abi,functionName:"totalSupply"}).catch(()=>0n),
-      pc.readContract({address:token,abi:erc20Abi,functionName:"decimals"}).catch(()=>18),
-      pc.readContract({address:token,abi:erc20Abi,functionName:"balanceOf",args:[DEAD]}).catch(()=>0n),
-      pc.readContract({address:LOCKER,abi:lockerAbi,functionName:"feeRedirects",args:[token]}).catch(()=>"0x0000000000000000000000000000000000000000"),
-      pc.readContract({address:FACTORY,abi:factoryAbi,functionName:"getLaunchedToken",args:[token]}).catch(()=>null),
-    ]);
-    const dec=Number(decimals);
-    const sup=Number(formatUnits(supply,dec));
-    const burned=Number(formatUnits(burnedBal,dec));
-    const burnedPct = sup>0 ? (burned/sup*100) : 0;
-    const recip=getAddress(redir);
+    // cache-first: precomputed token data from stats.json (instant, no per-visitor
+    // RPC). Live chain reads only for a token not yet in the cache.
+    let st = {};
+    try { st = await (await fetch("https://raw.githubusercontent.com/ponsfork/pons-fork-stats/main/stats.json?t="+Date.now())).json(); } catch(e){}
+    const f = (w) => { const v = Number(formatUnits(BigInt(w || "0"), 18)); return v >= 1 ? v.toFixed(3) : v.toFixed(4); };
+    const c = st.tokens?.[token.toLowerCase()];
+    let name, symbol, dec, sup, burned, burnedPct, recip, deployer, cachedLogo=null, distEth="0", donEth="0";
+    if (c && c.name){
+      name=c.name; symbol=c.symbol; dec=c.decimals;
+      sup=Number(formatUnits(BigInt(c.totalSupply||"0"),dec));
+      burnedPct=c.burnedPct||0; burned=sup*burnedPct/100;
+      deployer=c.deployer||""; cachedLogo=c.logo||"";
+      recip=c.mode==="agentic"?getAddress(AGENTIC):c.mode==="cashback"?getAddress(CASHBACK):c.mode==="charity"?getAddress(CHARITY):"0x0000000000000000000000000000000000000000";
+      distEth=f(c.distributedWei); donEth=f(c.charityDonatedWei);
+    } else {
+      const [nm,sy,supply,decimals,burnedBal,redir,info]=await Promise.all([
+        pc.readContract({address:token,abi:erc20Abi,functionName:"name"}).catch(()=> "Unknown"),
+        pc.readContract({address:token,abi:erc20Abi,functionName:"symbol"}).catch(()=> "?"),
+        pc.readContract({address:token,abi:erc20Abi,functionName:"totalSupply"}).catch(()=>0n),
+        pc.readContract({address:token,abi:erc20Abi,functionName:"decimals"}).catch(()=>18),
+        pc.readContract({address:token,abi:erc20Abi,functionName:"balanceOf",args:[DEAD]}).catch(()=>0n),
+        pc.readContract({address:LOCKER,abi:lockerAbi,functionName:"feeRedirects",args:[token]}).catch(()=>"0x0000000000000000000000000000000000000000"),
+        pc.readContract({address:FACTORY,abi:factoryAbi,functionName:"getLaunchedToken",args:[token]}).catch(()=>null),
+      ]);
+      dec=Number(decimals); name=nm; symbol=sy;
+      sup=Number(formatUnits(supply,dec)); burned=Number(formatUnits(burnedBal,dec)); burnedPct=sup>0?burned/sup*100:0;
+      recip=getAddress(redir); deployer=info?info.deployer:"";
+      const rec = st.tokens?.[token.toLowerCase()] || {};
+      distEth=f(rec.distributedWei); donEth=f(rec.charityDonatedWei);
+    }
     const isAgentic = recip===getAddress(AGENTIC);
     const isCashback = recip===getAddress(CASHBACK);
     const isCharity = recip===getAddress(CHARITY);
     const enabled = isAgentic || isCashback || isCharity;
-    const deployer = info ? info.deployer : "";
-
-    // cumulative totals (cashback payouts / charity donations) — from the published stats
-    let distEth = "0", donEth = "0";
-    try {
-      const st = await (await fetch("https://raw.githubusercontent.com/ponsfork/pons-fork-stats/main/stats.json?t="+Date.now())).json();
-      const rec = st.tokens?.[token.toLowerCase()] || {};
-      const f = (w) => { const v = Number(formatUnits(BigInt(w || "0"), 18)); return v >= 1 ? v.toFixed(3) : v.toFixed(4); };
-      distEth = f(rec.distributedWei);
-      donEth = f(rec.charityDonatedWei);
-    } catch (e) {}
 
     const statusHtml = enabled
       ? `<div class="status on"><span class="dot"></span><span class="txt">Pons Fork enabled</span>
@@ -293,7 +298,7 @@ async function main(){
     })(); }
 
     // Swap the text avatar for the real pons logo once it resolves; keep text on failure.
-    tokenLogo(token).then(src=>{
+    (cachedLogo?Promise.resolve(cachedLogo):tokenLogo(token)).then(src=>{
       if(!src)return; const cur=document.querySelector(".tk .ic"); if(!cur)return;
       const img=document.createElement("img"); img.className="ic"; img.src=src; img.alt="";
       img.onerror=()=>{const d=document.createElement("div");d.className="ic";d.textContent=String(symbol).slice(0,3).toUpperCase();img.replaceWith(d);};
