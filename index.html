@@ -149,6 +149,34 @@
   .foot a.soc{color:var(--mut);text-decoration:none;font-size:13px}
   .foot a.soc:hover{color:var(--ink)}
   .foot .muted{color:var(--faint);font-size:12.5px}
+
+  /* == pons-fork-footer == */
+  .site-footer{background:#121513;color:#e9ece9;margin-top:64px}
+  .site-footer .wrap{padding-top:56px;padding-bottom:30px}
+  .site-footer .ft-top{display:grid;grid-template-columns:1.6fr 1fr 1fr 1.4fr;gap:40px}
+  .site-footer .ft-brand .logo{font-family:var(--serif);font-size:34px;line-height:1;letter-spacing:-.01em;color:#fff}
+  .site-footer .ft-brand .logo .fork{font-style:italic;color:#c9bcff}
+  .site-footer .ft-brand p{margin-top:16px;font-size:13.5px;line-height:1.65;color:#9aa39c;max-width:34ch}
+  .site-footer .ft-col h4,.site-footer .ft-risk h4{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#6f766f;margin-bottom:16px}
+  .site-footer .ft-col a{display:block;text-decoration:none;color:#cdd2cd;font-size:13.5px;padding:6px 0;transition:color .12s}
+  .site-footer .ft-col a:hover{color:#fff}
+  .site-footer .ft-col a .tag{font-size:11px;color:#6f766f;margin-left:6px}
+  .site-footer .ft-col a .heart{color:#d6336c}
+  .site-footer .ft-col a .dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:8px;vertical-align:middle}
+  .site-footer .d-burn{background:#ea580c}.site-footer .d-hold{background:#0e9f6e}.site-footer .d-heart{background:#d6336c}
+  .site-footer .ft-risk p{font-size:12.5px;line-height:1.7;color:#8b928b}
+  .site-footer .ft-risk .ca{display:inline-flex;align-items:center;gap:8px;margin-top:16px;font-family:var(--mono);font-size:11.5px;color:#cdd2cd;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);padding:7px 12px;border-radius:999px;text-decoration:none}
+  .site-footer .ft-risk .ca b{color:#c9bcff;font-family:var(--sans);font-weight:600}
+  .site-footer .ft-risk .ca .cp{color:#6f766f}.site-footer .ft-risk .ca:hover .cp{color:#fff}
+  .site-footer .ft-bar{border-top:1px solid rgba(255,255,255,.08);margin-top:44px;padding-top:22px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .site-footer .ft-bar .cc{font-size:12px;color:#6f766f}
+  .site-footer .ft-bar .cc a{color:#8b928b;text-decoration:none}
+  .site-footer .ft-bar .sp{flex:1}
+  .site-footer .ft-bar .soc{display:inline-flex;align-items:center;gap:8px;text-decoration:none;color:#cdd2cd;font-size:12.5px;border:1px solid rgba(255,255,255,.12);padding:7px 13px;border-radius:999px;transition:.12s}
+  .site-footer .ft-bar .soc:hover{color:#fff;border-color:rgba(255,255,255,.3)}
+  .v2soon{display:inline-block;font-size:9.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#7c5cff;background:rgba(124,92,255,.12);border:1px solid rgba(124,92,255,.25);padding:2px 7px;border-radius:999px;margin-left:2px;vertical-align:middle}
+  @media(max-width:820px){.site-footer .ft-top{grid-template-columns:1fr 1fr;gap:32px}.site-footer .ft-brand{grid-column:1/-1}}
+  @media(max-width:520px){.site-footer .ft-top{grid-template-columns:1fr 1fr}.site-footer .ft-risk{grid-column:1/-1}}
 </style>
 </head>
 <body>
@@ -163,6 +191,7 @@
     <a class="link" href="/charity/" style="color:var(--heart);font-weight:500">Charity ♥</a>
     <a class="link" href="/analytics/">Analytics</a>
     <a class="link" href="https://pons-fork.gitbook.io/pons-fork-docs/">Docs ↗</a>
+    <span class="v2soon">V2 soon</span>
     <a class="link" href="https://x.com/ponsfork">X ↗</a>
     <span class="connect"><button id="connect">Connect wallet</button></span>
   </nav>
@@ -251,15 +280,6 @@
     </div>
   </section>
 
-  <footer class="foot">
-    <a class="brand" href="/" aria-label="Pons Fork — home"><img class="brand-logo" src="/logo.jpg" alt="Pons Fork" width="400" height="400" /></a>
-    <div class="sp"></div>
-    <a class="soc" href="https://x.com/ponsfork">X</a>
-    <a class="soc" href="https://t.me/ponsfork">Telegram</a>
-    <a class="soc" href="https://pons-fork.gitbook.io/pons-fork-docs/">Docs</a>
-    <a class="soc" href="https://github.com/ponsfork">GitHub</a>
-  </footer>
-
 </div>
 
 <script>
@@ -325,7 +345,7 @@ const fmtUsd=n=>{if(!n)return "—";if(n>=1e9)return "$"+(n/1e9).toFixed(2)+"B";
   all.sort((x,y)=>mcapOf(y[0])-mcapOf(x[0]));  // biggest market cap first
   const box=document.getElementById("live-tokens");
   document.getElementById("tok-total").textContent=all.length+(all.length===1?" token":" tokens");
-  document.getElementById("tok-sub").textContent=all.length?"connected · live from Robinhood Chain":"none connected yet · live from Robinhood Chain";
+  document.getElementById("tok-sub").textContent=all.length?"connected · live on-chain":"none connected yet · live on-chain";
   if(!all.length){box.innerHTML='<div class="empty">No tokens connected yet — point your fee wallet at Agentic Mode or Cashback to be the first.</div>';return;}
 
   // filter tabs (scales as the token count grows)
@@ -362,5 +382,40 @@ const fmtUsd=n=>{if(!n)return "—";if(n>=1e9)return "$"+(n/1e9).toFixed(2)+"B";
 })().catch(e=>{const box=document.getElementById("live-tokens");if(box)box.innerHTML='<div class="empty">Couldn\'t load live data — <a href="https://robinhoodchain.blockscout.com">explorer</a></div>';const s=document.getElementById("tok-sub");if(s)s.textContent="live data unavailable";});
 </script>
 
+  <footer class="site-footer">
+    <div class="wrap">
+      <div class="ft-top">
+        <div class="ft-brand">
+          <div class="logo">Pons <span class="fork">Fork</span></div>
+          <p>Every creator fee, put to work automatically — bought back &amp; burned, paid to holders, or donated to charity. Entirely on-chain.</p>
+        </div>
+        <div class="ft-col">
+          <h4>Explore</h4>
+          <a href="/">Home</a>
+          <a href="/analytics/">Analytics</a>
+          <a href="/charity/">Charity <span class="heart">&hearts;</span></a>
+          <a href="https://pons-fork.gitbook.io/pons-fork-docs/">Docs <span class="tag">&#8599;</span></a>
+        </div>
+        <div class="ft-col">
+          <h4>Protocols</h4>
+          <a href="/#modes"><span class="dot d-burn"></span>Agentic Mode</a>
+          <a href="/#modes"><span class="dot d-hold"></span>Cashback</a>
+          <a href="/charity/"><span class="dot d-heart"></span>Charity</a>
+          <a href="https://pons.family">pons.family <span class="tag">&#8599;</span></a>
+        </div>
+        <div class="ft-risk">
+          <h4>$FORK</h4>
+          <p>5% of every protocol fee buys back $FORK to the treasury. The rest funds the protocol the creator chose. Not financial advice — tokens are volatile and may lose all value.</p>
+          <a class="ca" href="/token/0x73fc2f1cac113a37939c43a772f64f1706df249f" title="View $FORK"><b>$FORK</b><span>0x73fc&hellip;f249f</span><span class="cp">&#8599;</span></a>
+        </div>
+      </div>
+      <div class="ft-bar">
+        <span class="cc">&copy; 2026 Pons Fork &middot; built on <a href="https://pons.family">pons.family</a></span>
+        <span class="sp"></span>
+        <a class="soc" href="https://t.me/ponsfork">Telegram</a>
+        <a class="soc" href="https://x.com/ponsfork">@ponsfork &middot; X</a>
+      </div>
+    </div>
+  </footer>
 </body>
 </html>
