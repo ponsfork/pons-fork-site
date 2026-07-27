@@ -208,7 +208,7 @@
 </div>
 
 <script type="module">
-import { createPublicClient, http, getAddress, isAddress, formatEther, erc20Abi, parseAbi, stringToHex } from "https://esm.sh/viem@2.23.2";
+import { createPublicClient, http, fallback, getAddress, isAddress, formatEther, erc20Abi, parseAbi, stringToHex } from "https://esm.sh/viem@2.23.2";
 
 const RPC="https://rpc.mainnet.chain.robinhood.com";
 const EXPLORER="https://robinhoodchain.blockscout.com";
@@ -231,7 +231,7 @@ const lockerAbi=parseAbi(["function feeRedirects(address) view returns (address)
 const factoryAbi=parseAbi(["function getLaunchedToken(address) view returns ((address token,address deployer,address pairedToken,address positionManager,uint256 positionId,uint256 dexId,uint256 launchConfigId,uint256 restrictionsEndBlock,uint256 supply,bool isToken0,uint24 poolFee,bool exists,uint256 initialBuyAmount))"]);
 const deployedEvent=parseAbi(["event TokenDeployed(address indexed token,address indexed deployer,address indexed dexFactory,address pairToken,uint256 dexId,uint256 launchConfigId)"])[0];
 
-const pc=createPublicClient({transport:http(RPC)});
+const pc=createPublicClient({transport:fallback([http(RPC),http("https://rpc.arrowrpc.com")])});
 const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 const short=a=>a.slice(0,6)+"…"+a.slice(-4);
 

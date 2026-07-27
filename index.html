@@ -286,12 +286,12 @@
   });
 </script>
 <script type="module">
-import {createPublicClient,http,getAddress,formatUnits,erc20Abi,parseAbi,decodeFunctionData} from "https://esm.sh/viem@2.23.2";
+import {createPublicClient,http,fallback,getAddress,formatUnits,erc20Abi,parseAbi,decodeFunctionData} from "https://esm.sh/viem@2.23.2";
 const RPC="https://rpc.mainnet.chain.robinhood.com",LOCKER="0x736D76699C26D0d966744cAe304C000d471f7F35",FACTORY="0xA5aAb3F0c6EeadF30Ef1D3Eb997108E976351feB",AGENTIC="0x31A4F14D8ac9E89F2Ac6000b375B125468Cd1AF3",CASHBACK="0x6ab6bD6416997Ad39cBDA34C9b2Fc912D57A8eF4",CHARITY="0x416C762f134B48Ef303bB0b8cAF7D1DB86F719d2",DEAD="0x000000000000000000000000000000000000dEaD";
 const lockerAbi=parseAbi(["function feeRecipientTokenCount(address) view returns (uint256)","function feeRecipientTokens(address,uint256) view returns (address)"]);
 const deployedEvent=parseAbi(["event TokenDeployed(address indexed token,address indexed deployer,address indexed dexFactory,address pairToken,uint256 dexId,uint256 launchConfigId)"])[0];
 const launchAbi=parseAbi(["function launchToken((string name,string symbol,string logo,string description,(string twitter,string telegram,string discord,string website,string farcaster) socials,address feeWallet) params,uint256 launchConfigId,uint256 dexId,bytes32 salt) payable returns (address)"]);
-const pc=createPublicClient({transport:http(RPC)});
+const pc=createPublicClient({transport:fallback([http(RPC),http("https://rpc.arrowrpc.com")])});
 const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 const ipfsHttp=u=>!u?"":(u.startsWith("ipfs://")?"https://ipfs.io/ipfs/"+u.slice(7).replace(/^ipfs\//,""):u);
 // Token logo is only in the launchToken() tx input (IPFS URI), not in any view fn.
