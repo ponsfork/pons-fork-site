@@ -182,6 +182,8 @@
 <body>
 <div class="wrap">
 
+  <div class="notice">⚠️ Our X (Twitter) account is suspended again — all the latest news is on Telegram: <a href="https://t.me/ponsfork">t.me/ponsfork</a></div>
+
   <nav class="nav">
     <a class="brand" href="/" aria-label="Pons Fork — home"><img class="brand-logo" src="/logo.jpg" alt="Pons Fork" width="400" height="400" /></a>
     <div class="sp"></div>
@@ -322,13 +324,25 @@ try{ETHUSD=(await (await fetch("https://api.coingecko.com/api/v3/simple/price?id
 const money=w=>{const v=Number(formatUnits(BigInt(w||"0"),18));const usd=ETHUSD?` (~$${(v*ETHUSD).toFixed(v*ETHUSD>=100?0:2)})`:"";return (v>=1?v.toFixed(3):v.toFixed(4))+" ETH"+usd;};
 for(const [id,key] of [["ag-sum","agenticBuybackWei"],["cb-sum","cashbackDistributedWei"],["ch-sum","charityDonatedWei"]]){const el=document.getElementById(id);if(el)el.textContent=money(TOT[key]);}
 const cbtn=document.getElementById("connect");
+const cwrap=cbtn?cbtn.closest(".connect"):null;
+let cmenu=null,cAddr=null;
+function setConn(a){cAddr=a?getAddress(a):null;if(cbtn)cbtn.textContent=cAddr?cAddr.slice(0,6)+"…"+cAddr.slice(-4):"Connect wallet";if(!cAddr&&cmenu){cmenu.remove();cmenu=null;}}
+function connMenu(){
+  if(cmenu){cmenu.remove();cmenu=null;return;}
+  cmenu=document.createElement("div");
+  cmenu.style.cssText="position:absolute;right:0;top:calc(100% + 6px);background:var(--card);border:1px solid var(--line);border-radius:12px;padding:6px;min-width:170px;box-shadow:0 10px 28px rgba(18,21,19,.12);z-index:60";
+  cmenu.innerHTML='<a href="/profile/'+cAddr+'" style="display:block;padding:9px 12px;text-decoration:none;color:var(--ink);font-size:13px;border-radius:8px">My profile</a><button id="cdisc" style="width:100%;text-align:left;font:inherit;font-size:13px;color:#d23c3c;background:none;border:0;padding:9px 12px;cursor:pointer;border-radius:8px">Disconnect</button>';
+  cwrap.appendChild(cmenu);
+  cmenu.querySelector("#cdisc").addEventListener("click",async()=>{try{await window.ethereum.request({method:"wallet_revokePermissions",params:[{eth_accounts:{}}]});}catch(e){}setConn(null);});
+}
 if(cbtn)cbtn.addEventListener("click",async()=>{
-  if(!window.ethereum){alert("No wallet found — install MetaMask (or any EIP-1193 wallet) and reload.");return;}
-  try{
-    const accs=await window.ethereum.request({method:"eth_requestAccounts"});
-    if(accs&&accs[0]){cbtn.textContent=accs[0].slice(0,6)+"…"+accs[0].slice(-4);location.href="/profile/"+accs[0];}
-  }catch(e){}
+  if(cAddr){connMenu();return;}
+  if(!window.ethereum){alert("No wallet found — install MetaMask or any EIP-1193 wallet and reload.");return;}
+  try{const a=await window.ethereum.request({method:"eth_requestAccounts"});if(a&&a[0])setConn(a[0]);}catch(e){}
 });
+if(window.ethereum&&window.ethereum.on)window.ethereum.on("accountsChanged",a=>setConn(a&&a[0]));
+document.addEventListener("click",e=>{if(cmenu&&cwrap&&!cwrap.contains(e.target)){cmenu.remove();cmenu=null;}});
+(async()=>{try{if(window.ethereum){const a=await window.ethereum.request({method:"eth_accounts"});if(a&&a[0])setConn(a[0]);}}catch(e){}})();
 const fmtEth=w=>{const v=Number(formatUnits(BigInt(w||"0"),18));return v>=1?v.toFixed(3):v.toFixed(4);};
 const ethDist=t=>fmtEth((STATS[t.toLowerCase()]||{}).distributedWei);
 const ethDon=t=>fmtEth((STATS[t.toLowerCase()]||{}).charityDonatedWei);
