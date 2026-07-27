@@ -209,7 +209,6 @@ async function main(){
     kpi("k-hold","Paid to holders",fEth(an.paidHoldersEth||0)+" <small>ETH</small>","Cashback"+(usd?" · ≈ "+fUsd((+an.paidHoldersEth||0)*usd):"")),
     kpi("k-heart","Donated to charity",fEth(an.donatedEth||0)+" <small>ETH</small>","Charity"+(usd?" · ≈ "+fUsd((+an.donatedEth||0)*usd):"")),
     kpi("k-fork","$FORK accumulated",fNum(+(an.forkInTreasury||0)),"bought back → treasury"),
-    kpi("k-eth","ETH price",usd?"$"+usd.toLocaleString():"—","via CoinGecko"),
   ].join("");
 
   // protocol cards
