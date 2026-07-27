@@ -242,14 +242,14 @@ async function main(){
     kpi("k-burn","Bought &amp; burned",fEth(an.buybackBurnEth||0)+" <small>ETH</small>","Agentic Mode"+(usd?" · ≈ "+fUsd((+an.buybackBurnEth||0)*usd):"")),
     kpi("k-hold","Paid to holders",fEth(an.paidHoldersEth||0)+" <small>ETH</small>","Cashback"+(usd?" · ≈ "+fUsd((+an.paidHoldersEth||0)*usd):"")),
     kpi("k-heart","Donated to charity",fEth(an.donatedEth||0)+" <small>ETH</small>","Charity"+(usd?" · ≈ "+fUsd((+an.donatedEth||0)*usd):"")),
-    kpi("k-fork","$FORK accumulated",fNum(+(an.forkInTreasury||0)),"bought back → treasury"),
+    kpi("k-fork","$FORK accumulated",fNum(+(an.forkInTreasury||0)),"bought back → treasury"+(an.forkSupplyPct?` · ${(+an.forkSupplyPct).toFixed(2)}% of supply`:"")),
   ].join("");
 
   // protocol cards
   document.getElementById("pcards").innerHTML=[
-    `<div class="pc a"><span class="badge">Agentic Mode</span><div class="big">${fEth(an.buybackBurnEth||0)} ETH</div><div class="lbl">bought back &amp; burned 🔥</div><div class="foot"><b>${t.agentic}</b> tokens · ${usd?fUsd((+an.buybackBurnEth||0)*usd)+" of supply removed":"supply removed"}</div></div>`,
-    `<div class="pc c"><span class="badge">Cashback</span><div class="big">${fEth(an.paidHoldersEth||0)} ETH</div><div class="lbl">paid straight to holders 💸</div><div class="foot"><b>${t.cashback}</b> tokens · ${usd?fUsd((+an.paidHoldersEth||0)*usd)+" returned":"returned in ETH"}</div></div>`,
-    `<div class="pc h"><span class="badge">Charity</span><div class="big">${fEth(an.donatedEth||0)} ETH</div><div class="lbl">donated to real causes ❤️</div><div class="foot"><b>${t.charity}</b> tokens · ${usd?fUsd((+an.donatedEth||0)*usd)+" to charity wallets":"to charity wallets"}</div></div>`,
+    `<div class="pc a"><span class="badge">Agentic Mode</span><div class="big">${fEth(an.buybackBurnEth||0)} ETH</div><div class="lbl">bought back &amp; burned</div><div class="foot"><b>${t.agentic}</b> tokens · ${usd?fUsd((+an.buybackBurnEth||0)*usd)+" of supply removed":"supply removed"}</div></div>`,
+    `<div class="pc c"><span class="badge">Cashback</span><div class="big">${fEth(an.paidHoldersEth||0)} ETH</div><div class="lbl">paid straight to holders</div><div class="foot"><b>${t.cashback}</b> tokens · ${usd?fUsd((+an.paidHoldersEth||0)*usd)+" returned":"returned in ETH"}</div></div>`,
+    `<div class="pc h"><span class="badge">Charity</span><div class="big">${fEth(an.donatedEth||0)} ETH</div><div class="lbl">donated to real causes</div><div class="foot"><b>${t.charity}</b> tokens · ${usd?fUsd((+an.donatedEth||0)*usd)+" to charity wallets":"to charity wallets"}</div></div>`,
   ].join("");
 
   // charity leaderboard
