@@ -16,7 +16,7 @@
     --line:rgba(18,21,19,.09);--card:#ffffff;
     --burn:#ea580c;--burn-bg:rgba(234,88,12,.1);
     --hold:#0e9f6e;--hold-bg:rgba(14,159,110,.1);
-    --heart:#d6336c;--heart-bg:rgba(214,51,108,.09);
+    --heart:#d6336c;--heart-bg:rgba(214,51,108,.09);--rwa:#2f6df6;--rwa-bg:rgba(47,109,246,.1);--lp:#0ea5a5;--lp-bg:rgba(14,165,165,.1);
     --red:#d23c3c;--red-bg:rgba(210,60,60,.08);
     --sans:"Geist",system-ui,-apple-system,"Segoe UI",sans-serif;
     --serif:"Instrument Serif",Georgia,serif;
@@ -61,6 +61,8 @@
   .mode.a{color:var(--burn);background:var(--burn-bg)}
   .mode.c{color:var(--hold);background:var(--hold-bg)}
   .mode.h{color:var(--heart);background:var(--heart-bg)}
+  .mode.r{color:var(--rwa);background:var(--rwa-bg)}
+  .mode.lp{color:var(--lp);background:var(--lp-bg)}
   .mode.off{color:var(--faint);background:rgba(18,21,19,.06)}
 
   .prow{display:flex;align-items:center;gap:12px;padding:14px 4px;border-bottom:1px solid var(--line);text-decoration:none;color:inherit;transition:background .12s}
@@ -173,6 +175,8 @@ const FACTORY="0xA5aAb3F0c6EeadF30Ef1D3Eb997108E976351feB";
 const AGENTIC="0x31A4F14D8ac9E89F2Ac6000b375B125468Cd1AF3";
 const CASHBACK="0x6ab6bD6416997Ad39cBDA34C9b2Fc912D57A8eF4";
 const CHARITY="0x416C762f134B48Ef303bB0b8cAF7D1DB86F719d2";
+const RWA_W="0x84bF3ce5145e610f3765624967D9063A98710f2B";
+const LP_W="0x08aFb71121C691635A489438E01645fb95E6bef5";
 const DEAD="0x000000000000000000000000000000000000dEaD";
 
 const lockerAbi=parseAbi(["function feeRedirects(address) view returns (address)","function collectFees(address) returns (uint256,uint256)"]);
@@ -230,7 +234,7 @@ async function main(){
       sup=Number(formatUnits(BigInt(c.totalSupply||"0"),dec));
       burnedPct=c.burnedPct||0; burned=sup*burnedPct/100;
       deployer=c.deployer||""; cachedLogo=c.logo||"";
-      recip=c.mode==="agentic"?getAddress(AGENTIC):c.mode==="cashback"?getAddress(CASHBACK):c.mode==="charity"?getAddress(CHARITY):"0x0000000000000000000000000000000000000000";
+      recip=c.mode==="agentic"?getAddress(AGENTIC):c.mode==="cashback"?getAddress(CASHBACK):c.mode==="charity"?getAddress(CHARITY):c.mode==="rwa"?getAddress(RWA_W):c.mode==="lp"?getAddress(LP_W):"0x0000000000000000000000000000000000000000";
       distEth=f(c.distributedWei); donEth=f(c.charityDonatedWei);
     } else {
       const [nm,sy,supply,decimals,burnedBal,redir,info]=await Promise.all([
@@ -251,12 +255,14 @@ async function main(){
     const isAgentic = recip===getAddress(AGENTIC);
     const isCashback = recip===getAddress(CASHBACK);
     const isCharity = recip===getAddress(CHARITY);
-    const enabled = isAgentic || isCashback || isCharity;
+    const isRwa = recip===getAddress(RWA_W);
+    const isLp = recip===getAddress(LP_W);
+    const enabled = isAgentic || isCashback || isCharity || isRwa || isLp;
 
     const statusHtml = enabled
       ? `<div class="status on"><span class="dot"></span><span class="txt">Pons Fork enabled</span>
-           <span class="mode ${isAgentic?'a':isCashback?'c':'h'}">${isAgentic?'Agentic Mode · Buyback & Burn':isCashback?'Cashback · Holder rewards':'Charity · Fees to good causes'}</span>
-           <span class="sub">Fees are routed to Pons Fork right now — ${isAgentic?'bought back &amp; burned':isCashback?'paid to holders in ETH':'donated to the causes the dev picked (0% service fee)'}, automatically.</span></div>`
+           <span class="mode ${isAgentic?'a':isCashback?'c':isCharity?'h':isRwa?'r':'lp'}">${isAgentic?'Agentic Mode · Buyback & Burn':isCashback?'Cashback · Holder rewards':isCharity?'Charity · Fees to good causes':isRwa?'RWA Cashback · Paid in stocks':'Fees to LP · Deeper liquidity'}</span>
+           <span class="sub">Fees are routed to Pons Fork right now — ${isAgentic?'bought back &amp; burned':isCashback?'paid to holders in ETH':isCharity?'donated to the causes the dev picked (0% service fee)':isRwa?'used to buy the RWA stocks the dev picked, paid to holders':'added as liquidity — trading fees to treasury'}, automatically.</span></div>`
       : `<div class="status off"><span class="dot"></span><span class="txt">Not connected</span>
            <span class="sub">This token's fees are not routed to Pons Fork right now. Only the token's dev can point them at Agentic Mode, Cashback or Charity.</span></div>`;
 
@@ -551,6 +557,8 @@ async function renderProfile(addrRaw){
       if(r===getAddress(AGENTIC)){badge='<span class="mode a">Agentic Mode</span>';metric=`<div class="metric"><div class="v">${pct.toFixed(2)}%</div><div class="l">supply burned</div></div>`;}
       else if(r===getAddress(CASHBACK)){badge='<span class="mode c">Cashback</span>';metric=`<div class="metric"><div class="v">${fEth(rec.distributedWei)}</div><div class="l">ETH distributed</div></div>`;}
       else if(r===getAddress(CHARITY)){badge='<span class="mode h">Charity</span>';metric=`<div class="metric"><div class="v">${fEth(rec.charityDonatedWei)}</div><div class="l">ETH donated</div></div>`;}
+      else if(r===getAddress(RWA_W)){badge='<span class="mode r">RWA Cashback</span>';metric='<div class="metric"><div class="v">RWA</div><div class="l">paid in stocks</div></div>';}
+      else if(r===getAddress(LP_W)){badge='<span class="mode lp">Fees to LP</span>';metric='<div class="metric"><div class="v">LP</div><div class="l">to treasury</div></div>';}
       else{badge='<span class="mode off">not on Pons Fork</span>';metric='<div class="metric"><div class="v">—</div><div class="l"></div></div>';}
       metas.push({t,sym:String(symbol)});
       rowsHtml+=`<a class="prow" href="/token/${t}" data-t="${t}"><div class="ic">${esc(String(symbol).slice(0,3).toUpperCase())}</div><div><div class="nm">${esc(name)}</div><div class="tick">$${esc(symbol)}</div></div>${badge}${metric}</a>`;
