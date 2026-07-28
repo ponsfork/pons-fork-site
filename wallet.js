@@ -81,7 +81,7 @@
       try { await W.reconnect(cfg); } catch (_) {}   // restore a prior session across page loads
       sync(W.getAccount(cfg));
       return kit;
-    })().catch((e) => { console.error("[pons-wallet] AppKit init failed:", e); kitP = null; return null; });
+    })().catch((e) => { console.error("[pons-wallet] AppKit init failed:", e); window.__pfWalletErr = e; kitP = null; return null; });
     return kitP;
   }
 
@@ -96,7 +96,7 @@
     // click behaviour: connect modal when signed out, account modal (with Disconnect) when signed in
     async open() {
       const k = await ensure();
-      if (!k) { alert("Wallet failed to load — check your connection and try again."); return; }
+      if (!k) { const er = window.__pfWalletErr; alert("Wallet load error (screenshot this):\n\n" + (er ? ((er.name ? er.name + ": " : "") + (er.message || String(er))) : "unknown")); return; }
       k.modal.open();
     },
     async connect() { if (acct.isConnected) return acct.address; await api.open(); return acct.address; },
