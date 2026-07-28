@@ -156,7 +156,7 @@
     <a class="link" href="https://pons-fork.gitbook.io/pons-fork-docs/">Docs ↗</a>
     <span class="v2soon">V2 soon</span>
     <a class="link" href="https://x.com/ponsfork_">X ↗</a>
-    <button class="btn p" id="connect" data-noauto>Connect wallet</button>
+    <button class="btn p" id="connect">Connect wallet</button>
   </nav>
 
   <header class="hero">
@@ -253,7 +253,10 @@ const panel=document.getElementById("panel");
 const btn=document.getElementById("connect");
 let account=null;
 
-btn.addEventListener("click",()=>{ if(account){location.href="/profile/"+account;return;} connect(); });
+// connection handled by the shared AppKit connector (/wallet.js)
+(function bindWallet(){ if(!window.ponsWallet){return setTimeout(bindWallet,60);}
+  window.ponsWallet.onChange(a=>{ const addr=(a&&a.isConnected)?a.address:null; if(addr===account)return; account=addr;
+    if(account){ loadTokens(); } else { panel.innerHTML='<span class="muted">Connect the wallet you deployed with to set your charity split. If you deployed this coin, connect that dev wallet.</span>'; } }); })();
 async function connect(){
   if(!window.ethereum){panel.innerHTML='<span class="warn">No wallet found — install MetaMask (or any EIP-1193 wallet) and reload.</span>';return;}
   try{
@@ -382,7 +385,7 @@ async function saveAllocation(box,token,p,btn){
   try{
     const memo=`PONS|${token}|${p.map(x=>`${x.id}:${x.pct}`).join(",")}`;
     const data=stringToHex(memo);
-    const tx=await window.ethereum.request({method:"eth_sendTransaction",params:[{from:account,to:CHARITY,value:"0x0",data}]});
+    const tx=await window.ponsWallet.sendTransaction({to:CHARITY,value:0n,data});
     btn.textContent="Saved on-chain ✓";
     const cur=box.querySelector(".cur");
     cur.innerHTML=`current: ${esc(allocLabel(p))} · <a href="${EXPLORER}/tx/${tx}" target="_blank" style="color:inherit">tx ↗</a>`;

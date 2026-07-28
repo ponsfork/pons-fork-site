@@ -1,5 +1,6 @@
 /* Pons Fork — shared wallet connect (Reown AppKit; the same stack pons.family runs).
-   Lazy-loads the AppKit CDN bundle on first use and exposes window.ponsWallet.
+   Owns its own connected-state in localStorage so every page shows the wallet instantly,
+   then lazy-loads AppKit to reconnect the session and drive connect / disconnect / signing.
    Auto-wires any #connect / #nav-connect / [data-connect] button (skip with data-noauto). */
 (() => {
   "use strict";
@@ -9,25 +10,38 @@
   const EXPLORER = "https://robinhoodchain.blockscout.com";
   const CHAIN_ID = 4663;
   const SEL = "#connect,#nav-connect,[data-connect]";
+  const LS = "pf_addr";
 
   const short = (a) => (a ? a.slice(0, 6) + "…" + a.slice(-4) : "");
   const listeners = new Set();
   let acct = { address: undefined, isConnected: false, chainId: undefined };
-  let kit = null, initP = null;
+  let kit = null, kitP = null;
+  let sawConnected = false; // in-session flag: only clear state on a real connected→disconnected transition
+
+  // optimistic state from our own storage → instant, bundle-free cross-page display
+  try { const s = localStorage.getItem(LS); if (s) acct = { address: s, isConnected: true, chainId: CHAIN_ID }; } catch (_) {}
 
   const noauto = (b) => b.hasAttribute("data-noauto");
   function paint() {
     document.querySelectorAll(SEL).forEach((b) => {
       if (noauto(b)) return;
       b.textContent = acct.isConnected ? short(acct.address) : (b.dataset.label || "Connect wallet");
+      b.title = acct.isConnected ? "Wallet — click for account & disconnect" : "";
+      b.classList.toggle("wallet-on", acct.isConnected);
     });
   }
-  function emit() { paint(); listeners.forEach((f) => { try { f(acct); } catch (_) {} }); }
+  function setAcct(address, chainId) {
+    const on = !!address;
+    acct = { address: address || undefined, isConnected: on, chainId: on ? (chainId ?? CHAIN_ID) : undefined };
+    try { on ? localStorage.setItem(LS, address) : localStorage.removeItem(LS); } catch (_) {}
+    paint();
+    listeners.forEach((f) => { try { f(acct); } catch (_) {} });
+  }
 
   async function ensure() {
     if (kit) return kit;
-    if (initP) return initP;
-    initP = (async () => {
+    if (kitP) return kitP;
+    kitP = (async () => {
       const m = await import(APPKIT);
       const chain = m.networks.defineChain({
         id: CHAIN_ID, caipNetworkId: "eip155:" + CHAIN_ID, chainNamespace: "eip155",
@@ -46,45 +60,59 @@
         },
         features: { analytics: false, email: false, socials: false, onramp: false, swaps: false },
         themeMode: "light",
-        themeVariables: { "--w3m-accent": "#121513", "--w3m-font-family": '"Geist",system-ui,sans-serif' },
+        themeVariables: { "--w3m-accent": "#121513" },
       });
-      const cfg = adapter.wagmiConfig;
-      const W = m.WagmiCore;
-      const apply = (a) => {
-        acct = { address: a.address, isConnected: a.status === "connected", chainId: a.chainId };
-        emit();
+      const cfg = adapter.wagmiConfig, W = m.WagmiCore;
+      const sync = (a) => {
+        if (a && a.status === "connected" && a.address) { sawConnected = true; setAcct(a.address, a.chainId); }
+        else if (a && a.status === "disconnected" && sawConnected) { sawConnected = false; setAcct(null); }
+        // ignore the initial "disconnected" before any connection — keep optimistic display
       };
-      apply(W.getAccount(cfg));
-      W.watchAccount(cfg, { onChange: apply });
+      W.watchAccount(cfg, { onChange: sync });
       kit = { modal, cfg, W, chain, viem: m.Viem };
+      try { await W.reconnect(cfg); } catch (_) {}   // restore a prior session across page loads
+      sync(W.getAccount(cfg));
       return kit;
-    })();
-    return initP;
+    })().catch((e) => { console.error("[pons-wallet] AppKit init failed:", e); kitP = null; return null; });
+    return kitP;
   }
 
   async function ensureChain() {
     const k = await ensure();
-    if (acct.isConnected && acct.chainId !== CHAIN_ID) {
+    if (k && acct.isConnected && acct.chainId !== CHAIN_ID) {
       try { await k.W.switchChain(k.cfg, { chainId: CHAIN_ID }); } catch (_) {}
     }
   }
 
   const api = {
-    async open() { const k = await ensure(); k.modal.open(); },
-    async connect() { const k = await ensure(); if (!acct.isConnected) k.modal.open(); return acct.address; },
-    async disconnect() { const k = await ensure(); await k.W.disconnect(k.cfg); },
+    // click behaviour: connect modal when signed out, account modal (with Disconnect) when signed in
+    async open() {
+      const k = await ensure();
+      if (!k) { alert("Wallet failed to load — check your connection and try again."); return; }
+      k.modal.open();
+    },
+    async connect() { if (acct.isConnected) return acct.address; await api.open(); return acct.address; },
+    async disconnect() { const k = await ensure(); if (k) { try { await k.W.disconnect(k.cfg); } catch (_) {} } sawConnected = false; setAcct(null); },
     address: () => acct.address,
     isConnected: () => acct.isConnected,
     chainId: () => acct.chainId,
-    onChange(cb) { listeners.add(cb); if (kit) { try { cb(acct); } catch (_) {} } return () => listeners.delete(cb); },
+    onChange(cb) { listeners.add(cb); try { cb(acct); } catch (_) {} return () => listeners.delete(cb); },
     ensureChain,
     async signMessage(message) {
-      const k = await ensure();
+      const k = await ensure(); if (!k) throw new Error("wallet unavailable");
       if (!acct.isConnected) { k.modal.open(); throw new Error("connect wallet first"); }
-      return k.W.signMessage(k.cfg, { message });
+      await ensureChain(); return k.W.signMessage(k.cfg, { message });
     },
-    async sendTransaction(tx) { const k = await ensure(); await ensureChain(); return k.W.sendTransaction(k.cfg, tx); },
-    async writeContract(args) { const k = await ensure(); await ensureChain(); return k.W.writeContract(k.cfg, args); },
+    async sendTransaction(tx) {
+      const k = await ensure(); if (!k) throw new Error("wallet unavailable");
+      if (!acct.isConnected) { k.modal.open(); throw new Error("connect wallet first"); }
+      await ensureChain(); return k.W.sendTransaction(k.cfg, tx);
+    },
+    async writeContract(args) {
+      const k = await ensure(); if (!k) throw new Error("wallet unavailable");
+      if (!acct.isConnected) { k.modal.open(); throw new Error("connect wallet first"); }
+      await ensureChain(); return k.W.writeContract(k.cfg, args);
+    },
     ready: ensure,
   };
   window.ponsWallet = api;
@@ -98,11 +126,8 @@
     });
     paint();
   }
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", wire);
-  else wire();
+  document.readyState === "loading" ? document.addEventListener("DOMContentLoaded", wire) : wire();
 
-  // restore a prior session (returning connected visitor) without blocking first paint
-  try {
-    if (Object.keys(localStorage).some((k) => /wagmi|w3m|walletconnect|reown|@appkit|@w3m/i.test(k))) ensure();
-  } catch (_) {}
+  // returning connected visitor → warm up AppKit in the background to confirm the session & enable disconnect
+  if (acct.isConnected) ensure();
 })();
