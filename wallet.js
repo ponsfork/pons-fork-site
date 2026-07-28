@@ -4,7 +4,10 @@
    Auto-wires any #connect / #nav-connect / [data-connect] button (skip with data-noauto). */
 (() => {
   "use strict";
-  const APPKIT = "https://cdn.jsdelivr.net/npm/@reown/appkit-cdn@1.1.0/dist/appkit.js";
+  const CDNS = [
+    "https://cdn.jsdelivr.net/npm/@reown/appkit-cdn@1.1.0/dist/appkit.js",
+    "https://unpkg.com/@reown/appkit-cdn@1.1.0/dist/appkit.js",
+  ];
   const PROJECT_ID = "6d5eead1ed6dc7b4a74927eec58f80d7";
   const RPC = "https://rpc.arrowrpc.com";
   const EXPLORER = "https://robinhoodchain.blockscout.com";
@@ -42,7 +45,12 @@
     if (kit) return kit;
     if (kitP) return kitP;
     kitP = (async () => {
-      const m = await import(APPKIT);
+      let m, lastErr;
+      for (const url of CDNS) {
+        try { m = await import(url); break; }
+        catch (e) { lastErr = e; console.warn("[pons-wallet] CDN failed:", url, e && e.message); }
+      }
+      if (!m) throw (lastErr || new Error("all CDNs failed"));
       const chain = m.networks.defineChain({
         id: CHAIN_ID, caipNetworkId: "eip155:" + CHAIN_ID, chainNamespace: "eip155",
         name: "Robinhood Chain",
