@@ -353,10 +353,10 @@ const mcapOf=t=>Number((STATS[t.toLowerCase()]||{}).mcapUsd||0);
 const fmtUsd=n=>{if(!n)return "—";if(n>=1e9)return "$"+(n/1e9).toFixed(2)+"B";if(n>=1e6)return "$"+(n/1e6).toFixed(2)+"M";if(n>=1e3)return "$"+(n/1e3).toFixed(1)+"K";return "$"+Math.round(n);};
 (async()=>{
   // build the list entirely from the cached stats.json — zero per-token RPC (instant)
-  const ML={agentic:"a",cashback:"c",charity:"h"};
+  const ML={agentic:"a",cashback:"c",charity:"h",rwa:"r",lp:"lp"};
   const all=Object.entries(STATS).filter(([,v])=>v&&v.mode).map(([t,v])=>[t,ML[v.mode]||"a",v]);
   all.sort((x,y)=>(y[2].mcapUsd||0)-(x[2].mcapUsd||0));  // biggest market cap first
-  const cnt={a:0,c:0,h:0}; for(const it of all) cnt[it[1]]++;
+  const cnt={a:0,c:0,h:0,r:0,lp:0}; for(const it of all) cnt[it[1]]=(cnt[it[1]]||0)+1;
   document.getElementById("ag-count").textContent=cnt.a;
   document.getElementById("cb-count").textContent=cnt.c;
   document.getElementById("ch-count").textContent=cnt.h;
@@ -368,7 +368,7 @@ const fmtUsd=n=>{if(!n)return "—";if(n>=1e9)return "$"+(n/1e9).toFixed(2)+"B";
   // filter tabs (scales as the token count grows)
   const tabsEl=document.getElementById("tok-tabs");
   tabsEl.style.display="flex";
-  tabsEl.innerHTML=[["all","All",all.length],["a","Agentic",cnt.a],["c","Cashback",cnt.c],["h","Charity",cnt.h]]
+  tabsEl.innerHTML=[["all","All",all.length],["a","Agentic",cnt.a],["c","Cashback",cnt.c],["h","Charity",cnt.h],["r","RWA",cnt.r],["lp","LP",cnt.lp]]
     .map(([f,label,n],i)=>`<button class="tab${i===0?" active":""}" data-f="${f}">${label}<b>${n}</b></button>`).join("");
   tabsEl.addEventListener("click",e=>{const b=e.target.closest(".tab");if(!b)return;
     tabsEl.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));
@@ -383,13 +383,17 @@ const fmtUsd=n=>{if(!n)return "—";if(n>=1e9)return "$"+(n/1e9).toFixed(2)+"B";
     const sym3=esc(String(symbol).slice(0,3).toUpperCase());
     el.innerHTML='<div class="ic">'+sym3+'</div>'
       +'<div><div class="nm">'+esc(name)+'</div><div class="tick">$'+esc(symbol)+' <span class="ccopy" data-a="'+t+'" title="copy contract">⧉</span></div></div>'
-      +'<span class="badge '+(mode==="a"?"a":mode==="c"?"c":"h")+'">'+(mode==="a"?"Agentic Mode":mode==="c"?"Cashback":"Charity")+'</span>'
+      +'<span class="badge '+({a:"a",c:"c",h:"h",r:"r",lp:"lp"}[mode]||"a")+'">'+({a:"Agentic Mode",c:"Cashback",h:"Charity",r:"RWA Cashback",lp:"Fees to LP"}[mode]||"Pons Fork")+'</span>'
       +'<div class="mcap"><div class="v">'+fmtUsd(v.mcapUsd||0)+'</div><div class="l">market cap</div></div>'
       +(mode==="a"
         ? '<div class="metric"><div class="v">'+(v.burnedPct||0).toFixed(2)+'%</div><div class="l">supply burned</div></div>'
         : mode==="c"
         ? '<div class="metric"><div class="v">'+fmtEth(v.distributedWei)+'</div><div class="l">ETH distributed</div></div>'
-        : '<div class="metric"><div class="v">'+fmtEth(v.charityDonatedWei)+'</div><div class="l">ETH donated</div></div>')
+        : mode==="h"
+        ? '<div class="metric"><div class="v">'+fmtEth(v.charityDonatedWei)+'</div><div class="l">ETH donated</div></div>'
+        : mode==="r"
+        ? '<div class="metric"><div class="v">RWA</div><div class="l">paid in stocks</div></div>'
+        : '<div class="metric"><div class="v">LP</div><div class="l">to treasury</div></div>')
       +'<span class="arrow">→</span>';
     const cc=el.querySelector(".ccopy");
     cc.addEventListener("click",ev=>{ev.preventDefault();ev.stopPropagation();navigator.clipboard&&navigator.clipboard.writeText(t);cc.textContent="✓";setTimeout(()=>cc.textContent="⧉",1200);});
