@@ -17,6 +17,7 @@
     --burn:#ea580c;--burn-bg:rgba(234,88,12,.1);
     --hold:#0e9f6e;--hold-bg:rgba(14,159,110,.1);
     --heart:#d6336c;--heart-bg:rgba(214,51,108,.09);
+    --rwa:#2f6df6;--rwa-bg:rgba(47,109,246,.1);--lp:#0ea5a5;--lp-bg:rgba(14,165,165,.1);
     --red:#d23c3c;--red-bg:rgba(210,60,60,.08);
     --sans:"Geist",system-ui,-apple-system,"Segoe UI",sans-serif;
     --serif:"Instrument Serif",Georgia,serif;
@@ -83,6 +84,8 @@
   .badge.a{color:var(--burn);background:var(--burn-bg)}
   .badge.c{color:var(--hold);background:var(--hold-bg)}
   .badge.h{color:var(--heart);background:var(--heart-bg)}
+  .badge.r{color:var(--rwa);background:var(--rwa-bg)}
+  .badge.lp{color:var(--lp);background:var(--lp-bg)}
   .mc.wide{grid-column:1/-1}
   .mc .golink{display:inline-block;margin-top:12px;font-size:13.5px;font-weight:500;color:var(--heart);text-decoration:none;border-bottom:1px solid rgba(214,51,108,.35)}
   .mc .golink:hover{border-color:var(--heart)}
@@ -163,7 +166,7 @@
   .site-footer .ft-col a .tag{font-size:11px;color:var(--faint);margin-left:6px}
   .site-footer .ft-col a .heart{color:var(--heart)}
   .site-footer .ft-col a .dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:8px;vertical-align:middle}
-  .site-footer .d-burn{background:var(--burn)}.site-footer .d-hold{background:var(--hold)}.site-footer .d-heart{background:var(--heart)}
+  .site-footer .d-burn{background:var(--burn)}.site-footer .d-hold{background:var(--hold)}.site-footer .d-heart{background:var(--heart)}.site-footer .d-rwa{background:var(--rwa)}.site-footer .d-lp{background:var(--lp)}
   .site-footer .ft-risk p{font-size:12.5px;line-height:1.7;color:var(--mut)}
   .site-footer .ft-risk .ca{display:inline-flex;align-items:center;gap:8px;margin-top:16px;font-family:var(--mono);font-size:11.5px;color:var(--mut);background:var(--card);border:1px solid var(--line);padding:7px 12px;border-radius:999px;text-decoration:none}
   .site-footer .ft-risk .ca b{color:var(--ink);font-family:var(--sans);font-weight:600}
@@ -217,7 +220,7 @@
   </header>
 
   <section class="sec" id="modes">
-    <div class="kicker">Three modes</div>
+    <div class="kicker">Five modes</div>
     <h2>One address.<br /><span class="it">Automated forever.</span></h2>
     <p class="lead">Set your token's fee wallet to one of these addresses — at launch or any time after.
        That single action turns the fees on autopilot. Change your mind whenever: your fees, your call.</p>
@@ -246,6 +249,21 @@
         <div class="cnt"><b id="ch-count">–</b> tokens live in Charity</div>
         <div class="cnt"><b id="ch-sum">–</b> donated to causes</div>
         <a class="golink" href="/charity/">Choose your cause →</a>
+      </div>
+      <div class="mc">
+        <div class="n">04</div>
+        <h3>RWA Cashback <span class="badge r">Pay holders in stocks</span></h3>
+        <div class="desc">Fees are swapped into real tokenized stocks — GME, AAPL, TSLA and more — and paid to your holders pro-rata. You pick the mix.</div>
+        <div class="wallet" data-a="0x84bF3ce5145e610f3765624967D9063A98710f2B"><span>0x84bF3ce5145e610f3765624967D9063A98710f2B</span><span class="cp">⧉</span></div>
+        <div class="cnt">Point your fees here, then pick your stocks</div>
+        <a class="golink" href="/rwa/" style="color:var(--rwa);border-bottom-color:rgba(47,109,246,.35)">Pick your stocks →</a>
+      </div>
+      <div class="mc">
+        <div class="n">05</div>
+        <h3>Fees to LP <span class="badge lp">Deeper liquidity</span></h3>
+        <div class="desc">Fees are added as liquidity to your token's pool — deepening the market and earning trading fees straight to the treasury.</div>
+        <div class="wallet" data-a="0x08aFb71121C691635A489438E01645fb95E6bef5"><span>0x08aFb71121C691635A489438E01645fb95E6bef5</span><span class="cp">⧉</span></div>
+        <div class="cnt">Point your fees here to deepen your pool</div>
       </div>
     </div>
   </section>
@@ -401,6 +419,8 @@ const fmtUsd=n=>{if(!n)return "—";if(n>=1e9)return "$"+(n/1e9).toFixed(2)+"B";
           <a href="/#modes"><span class="dot d-burn"></span>Agentic Mode</a>
           <a href="/#modes"><span class="dot d-hold"></span>Cashback</a>
           <a href="/charity/"><span class="dot d-heart"></span>Charity</a>
+          <a href="/rwa/"><span class="dot d-rwa"></span>RWA Cashback</a>
+          <a href="/#modes"><span class="dot d-lp"></span>Fees to LP</a>
         </div>
         <div class="ft-risk">
           <h4>$FORK</h4>
