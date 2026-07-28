@@ -141,6 +141,7 @@
   @media(max-width:820px){.site-footer .ft-top{grid-template-columns:1fr 1fr;gap:32px}.site-footer .ft-brand{grid-column:1/-1}}
   @media(max-width:520px){.site-footer .ft-top{grid-template-columns:1fr 1fr}.site-footer .ft-risk{grid-column:1/-1}}
   </style>
+  <script type="module" src="/wallet.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -564,7 +565,7 @@ main();
 // nav connect: connect the wallet and jump to its profile
 // Connect wallet opens the Privy wallet hub (/wallet)
 const navBtn=document.getElementById("nav-connect");
-if(navBtn)navBtn.addEventListener("click",()=>{location.href="/wallet/";});
+/* nav connect handled by /wallet.js (Reown AppKit) */
 </script>
 </body>
 </html>
